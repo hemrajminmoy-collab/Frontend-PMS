@@ -334,8 +334,9 @@ export default function PurchasePage() {
 
   // Wrapped in useCallback so react-hooks/exhaustive-deps is satisfied
   // ------------------ API base URL ------------------
-  const API_BASE_URL =
-    import.meta?.env?.VITE_BASE_URL || "https://backend-pms-three.vercel.app";
+  const API_BASE_URL = (
+    import.meta?.env?.VITE_BASE_URL || "https://backend-pms-three.vercel.app"
+  ).replace(/\/+$/, "");
 
   const [uploadingInvoiceRowId, setUploadingInvoiceRowId] = useState(null);
   const [uploadingPoRowId, setUploadingPoRowId] = useState(null);

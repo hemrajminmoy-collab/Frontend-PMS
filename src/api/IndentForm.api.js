@@ -9,8 +9,10 @@ import axios from "axios";
 // in BackEnd/server.js (app.use('/indent', purchaseRoutes)).
 //
 // If you set VITE_API_URL, set it to the backend ORIGIN only, e.g.:
-//   VITE_API_URL=https://backend-pms-three.vercel.app/
-const API_ORIGIN = import.meta.env.VITE_API_URL || "https://backend-pms-three.vercel.app/";
+//   VITE_API_URL=https://backend-pms-three.vercel.app
+const API_ORIGIN = (
+  import.meta.env.VITE_API_URL || "https://backend-pms-three.vercel.app"
+).replace(/\/+$/, "");
 const API_BASE = `${API_ORIGIN}/indent`;
 
 if (import.meta.env.MODE === "development") {
