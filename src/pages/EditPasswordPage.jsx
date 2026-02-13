@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE = import.meta.env.VITE_API_URL || "https://backend-pms-three.vercel.app/";
+const API_BASE = import.meta.env.VITE_API_URL || "https://backend-pms-three.vercel.app";
 const DEV_USERNAME = "Minmoy";
 
 export default function EditPasswordPage() {

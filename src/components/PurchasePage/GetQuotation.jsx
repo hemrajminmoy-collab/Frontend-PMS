@@ -335,7 +335,7 @@ export default function PurchasePage() {
   // Wrapped in useCallback so react-hooks/exhaustive-deps is satisfied
   // ------------------ API base URL ------------------
   const API_BASE_URL =
-    import.meta?.env?.VITE_BASE_URL || "https://backend-pms-three.vercel.app/";
+    import.meta?.env?.VITE_BASE_URL || "https://backend-pms-three.vercel.app";
 
   const [uploadingInvoiceRowId, setUploadingInvoiceRowId] = useState(null);
   const [uploadingPoRowId, setUploadingPoRowId] = useState(null);
@@ -1208,7 +1208,7 @@ export default function PurchasePage() {
     }
 
     const res = await fetch(
-      "https://backend-pms-three.vercel.app//indent/add-to-localPurchase",
+      "https://backend-pms-three.vercel.app/indent/add-to-localPurchase",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
