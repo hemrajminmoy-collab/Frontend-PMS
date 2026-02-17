@@ -4178,17 +4178,22 @@ export default function PurchasePage() {
                             <>
                               {(() => {
                                 // ✅ Status currently (prefer live edited value, fallback to DB snapshot)
+                                 // Status currently (prefer live edited value, fallback to DB snapshot)
                                 const dbTechStatus =
                                   row.dbTechnicalApprovalStatus ?? "";
                                 const isTechAlreadyDone =
-                                  dbTechStatus === "Done"; // ✅ only lock if already saved as Done in DB
+                                  dbTechStatus === "Done"; // lock only if already saved as Done in DB
 
-                                // ✅ Editable only for PSE / ADMIN and only if not already Done
+                                // Editable only for PSE / ADMIN and only if not already Done
                                 const canEditTechnical =
                                   (role === "PSE" || role === "ADMIN") &&
                                   !isTechAlreadyDone;
 
-                                const statusValue = dbTechStatus;
+                                const statusValue = (
+                                  row.technicalApprovalStatus ??
+                                  row.dbTechnicalApprovalStatus ??
+                                  ""
+                                ).toString();
                                 const approverValue = (
                                   row.approverName ??
                                   row.dbApproverName ??
