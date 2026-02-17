@@ -4877,6 +4877,57 @@ export default function PurchasePage() {
                                 {row.poNumber}
                               </td>
                               <td className="px-4 py-2 border-b">
+                                {(() => {
+                                  const hasUploadRole =
+                                    role === "ADMIN" ||
+                                    role === "PSE" ||
+                                    role === "PA";
+                                  const alreadyUploaded = Boolean(
+                                    row.poPdfWebViewLink,
+                                  );
+                                  const canReupload =
+                                    role === "ADMIN" || role === "PSE";
+                                  const canUpload =
+                                    hasUploadRole &&
+                                    (canReupload || !alreadyUploaded);
+                                  return (
+                                    <input
+                                      type="file"
+                                      accept="application/pdf"
+                                      disabled={
+                                        !canUpload ||
+                                        uploadingPoRowId === row._id
+                                      }
+                                      onChange={(e) => {
+                                        const f = e.target.files?.[0];
+                                        if (!f) return;
+                                        handlePoUpload(row._id, f);
+                                        e.target.value = "";
+                                      }}
+                                    />
+                                  );
+                                })()}
+                              </td>
+                              <td className="px-4 py-2 border-b">
+                                {row.poPdfWebViewLink ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      window.open(
+                                        row.poPdfWebViewLink,
+                                        "_blank",
+                                      )
+                                    }
+                                    disabled={uploadingPoRowId === row._id}
+                                    className="btn btn-sm btn-warning"
+                                  >
+                                    Show PO
+                                  </button>
+                                ) : (
+                                  <span style={{ color: "#888" }}>No PO</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-2 border-b">
                                 {row.vendorName}
                               </td>
                               <td className="px-4 py-2 border-b">
