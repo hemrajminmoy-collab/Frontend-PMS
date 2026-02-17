@@ -635,8 +635,10 @@ export default function IndentCreationForm() {
                 className="w-full p-3 bg-[#DFDDDD] rounded-xl"
               >
                 <option value="">Select Name</option>
-                <option value="Proloy Ghosh">Proloy Ghosh</option>
-                <option value="Sayanta Chakraborty">Sayanta Chakraborty</option>
+                <option value="Praloy Ghosh">Praloy Ghosh</option>
+                <option value="Sayanta chakraborty">Sayanta Chakraborty</option>
+                <option value="Arpita Ghosh">Arpita Ghosh</option>
+                <option value="Arpita Ghosh">Arpita Ghosh</option>
                 <option value="Arpita Ghosh">Arpita Ghosh</option>
               </select>
             </div>
