@@ -638,8 +638,7 @@ export default function IndentCreationForm() {
                 <option value="Praloy Ghosh">Praloy Ghosh</option>
                 <option value="Sayanta chakraborty">Sayanta Chakraborty</option>
                 <option value="Arpita Ghosh">Arpita Ghosh</option>
-                <option value="Arpita Ghosh">Arpita Ghosh</option>
-                <option value="Arpita Ghosh">Arpita Ghosh</option>
+                <option value="Souritra Ghoshal">Souritra Ghoshal</option>
               </select>
             </div>
           </div>
