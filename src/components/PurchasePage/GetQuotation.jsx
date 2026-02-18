@@ -172,6 +172,21 @@ export default function PurchasePage() {
     return s;
   }, []);
 
+  const getRowTimestamp = useCallback((row) => {
+    if (!row) return 0;
+
+    const created = row.createdAt ? new Date(row.createdAt).getTime() : 0;
+    if (!Number.isNaN(created) && created > 0) return created;
+
+    const updated = row.updatedAt ? new Date(row.updatedAt).getTime() : 0;
+    if (!Number.isNaN(updated) && updated > 0) return updated;
+
+    const rawDate = row.date ? new Date(row.date).getTime() : 0;
+    if (!Number.isNaN(rawDate) && rawDate > 0) return rawDate;
+
+    return 0;
+  }, []);
+
   // ---------------------- Store Manual Close (Unique ID) ----------------------
   const [manualCloseUniqueId, setManualCloseUniqueId] = useState("");
   const [manualCloseRecord, setManualCloseRecord] = useState(null);
@@ -905,7 +920,17 @@ export default function PurchasePage() {
 
   // Map filteredData into tableData and snapshot DB fields
   useEffect(() => {
-    const formattedData = (filteredData || []).map((r) => ({
+    const sortedRows = [...(filteredData || [])].sort((a, b) => {
+      const t1 = getRowTimestamp(a);
+      const t2 = getRowTimestamp(b);
+      if (t1 !== t2) return t2 - t1;
+
+      const u1 = String(a?.uniqueId || "");
+      const u2 = String(b?.uniqueId || "");
+      return u2.localeCompare(u1, undefined, { numeric: true });
+    });
+
+    const formattedData = sortedRows.map((r) => ({
       ...r,
       dbDoerName: r.doerName ?? "",
       dbDoerStatus: r.doerStatus ?? "",
@@ -922,7 +947,7 @@ export default function PurchasePage() {
 
     setTableData(formattedData);
     latestDataRef.current = formattedData;
-  }, [filteredData]);
+  }, [filteredData, getRowTimestamp]);
 
   // Refetch when filters/option change
   useEffect(() => {
