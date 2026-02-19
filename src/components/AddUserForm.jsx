@@ -14,6 +14,7 @@ export default function AddUser() {
   const [password, setPassword] = useState("");
   const [designation, setDesignation] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Inject Google Agu Font
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function AddUser() {
     const role = localStorage.getItem("role");
 
     if (role !== "ADMIN") {
-      navigate("/purchase"); // route where <PurchasePage /> is rendered
+      navigate("/"); // route where <PurchasePage /> is rendered
     }
   }, [navigate]);
 
@@ -57,6 +58,9 @@ export default function AddUser() {
 
 const handleSubmit = async (e) => {
   e.preventDefault();
+  if (isSubmitting) return;
+  setIsSubmitting(true);
+  try {
 
   const payload = {
     username,
@@ -77,6 +81,9 @@ const handleSubmit = async (e) => {
     navigate("/purchase"); // change if your route differs
   } else {
     alert(result || "Failed to add user");
+  }
+  } finally {
+    setIsSubmitting(false);
   }
 };
 
@@ -174,6 +181,7 @@ const handleSubmit = async (e) => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="flex-1 bg-transparent outline-none text-[16px]"
+                  disabled={isSubmitting}
                   required
                 />
               </div>
@@ -190,11 +198,12 @@ const handleSubmit = async (e) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="flex-1 bg-transparent outline-none text-[16px]"
+                  disabled={isSubmitting}
                   required
                 />
 
                 <span
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => !isSubmitting && setShowPassword(!showPassword)}
                   className="ml-2 text-gray-600 hover:text-gray-800 cursor-pointer select-none"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -211,6 +220,7 @@ const handleSubmit = async (e) => {
                   value={designation}
                   onChange={(e) => setDesignation(e.target.value)}
                   className="flex-1 bg-transparent outline-none text-[16px]"
+                  disabled={isSubmitting}
                   required
                 >
                   <option value="">Select Designation</option>
@@ -226,13 +236,21 @@ const handleSubmit = async (e) => {
               {/* SUBMIT BUTTON */}
               <button
                 type="submit"
+                disabled={isSubmitting}
 className="w-full text-white font-medium py-3 rounded-full 
            bg-gradient-to-r from-red-500 to-red-700 
-           hover:opacity-90 transition 
+           hover:opacity-90 transition disabled:opacity-70 disabled:cursor-not-allowed
            mb-[95%]"
 
               >
-                ADD USER
+                {isSubmitting ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ADDING USER...
+                  </span>
+                ) : (
+                  "ADD USER"
+                )}
               </button>
             </form>
           </div>

@@ -34,6 +34,8 @@ export default function IndentCreationForm() {
   const [bulkData, setBulkData] = useState([]);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [isLocalPurchase, setIsLocalPurchase] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   // ===========================
   // Fetch Latest Unique ID
@@ -76,6 +78,8 @@ export default function IndentCreationForm() {
   // ===========================
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
       const totalQty = Number(formData.totalQuantity);
@@ -124,6 +128,8 @@ export default function IndentCreationForm() {
     } catch (error) {
       console.error("Error submitting form:", error);
       alert("Failed to submit form: " + error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -168,6 +174,8 @@ export default function IndentCreationForm() {
 
   const handleBulkSave = async () => {
     if (!bulkData.length) return alert("No data to save!");
+    if (isBulkSaving) return;
+    setIsBulkSaving(true);
 
     try {
       for (let i = 0; i < bulkData.length; i++) {
@@ -201,6 +209,8 @@ export default function IndentCreationForm() {
     } catch (error) {
       console.error(error);
       alert("Failed to save bulk data.");
+    } finally {
+      setIsBulkSaving(false);
     }
   };
 
@@ -345,11 +355,14 @@ export default function IndentCreationForm() {
                           className="p-2 rounded bg-gray-200"
                         >
                           <option value="">Select</option>
-                          <option value="Proloy Ghosh">Proloy Ghosh</option>
+                          <option value="Praloy Ghosh">Praloy Ghosh</option>
                           <option value="Sayanta Chakraborty">
                             Sayanta Chakraborty
                           </option>
                           <option value="Arpita Ghosh">Arpita Ghosh</option>
+                          <option value="Souritra Ghoshal">Souritra Ghoshal</option>
+                          <option value="Amit Kr Ray">Amit Kr Ray</option>
+                          <option value="Juin Baidya">Juin Baidya</option>
                         </select>
                       </td>
                     </tr>
@@ -359,9 +372,17 @@ export default function IndentCreationForm() {
 
               <button
                 onClick={handleBulkSave}
-                className="mt-4 px-6 py-3 rounded-full bg-green-600 text-white hover:bg-green-700 transition"
+                disabled={isBulkSaving}
+                className="mt-4 px-6 py-3 rounded-full bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Save All
+                {isBulkSaving ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Saving...
+                  </span>
+                ) : (
+                  "Save All"
+                )}
               </button>
             </div>
           )}
@@ -636,9 +657,11 @@ export default function IndentCreationForm() {
               >
                 <option value="">Select Name</option>
                 <option value="Praloy Ghosh">Praloy Ghosh</option>
-                <option value="Sayanta chakraborty">Sayanta Chakraborty</option>
+                <option value="Sayanta Chakraborty">Sayanta Chakraborty</option>
                 <option value="Arpita Ghosh">Arpita Ghosh</option>
                 <option value="Souritra Ghoshal">Souritra Ghoshal</option>
+                <option value="Amit Kr Ray">Amit Kr Ray</option>
+                <option value="Juin Baidya">Juin Baidya</option>
               </select>
             </div>
           </div>
@@ -650,6 +673,7 @@ export default function IndentCreationForm() {
                 type="checkbox"
                 checked={isLocalPurchase}
                 onChange={(e) => setIsLocalPurchase(e.target.checked)}
+                disabled={isSubmitting}
                 className="w-5 h-5 accent-red-600 cursor-pointer"
               />
               Local Purchase
@@ -659,16 +683,25 @@ export default function IndentCreationForm() {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-3 rounded-full bg-red-600 text-white hover:bg-red-700 transition"
+                disabled={isSubmitting}
+                className="px-6 py-3 rounded-full bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
 
               <button
                 type="submit"
-                className="px-6 py-3 rounded-full bg-green-600 text-white hover:bg-green-700 transition"
+                disabled={isSubmitting}
+                className="px-6 py-3 rounded-full bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Submit
+                {isSubmitting ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Submitting...
+                  </span>
+                ) : (
+                  "Submit"
+                )}
               </button>
             </div>
           </div>

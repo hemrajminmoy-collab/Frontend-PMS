@@ -24,6 +24,11 @@ import axios from "axios";
 import PurchaseTopNav from "./PurchaseTopNav";
 import PurchaseSidebar from "./PurchaseSidebar";
 import PurchaseFilterBar from "./PurchaseFilterBar";
+import SummaryReportSection from "./sections/SummaryReportSection";
+import StoreManualCloseSection from "./sections/StoreManualCloseSection";
+import StoreBulkInvoiceSection from "./sections/StoreBulkInvoiceSection";
+import PoBulkSection from "./sections/PoBulkSection";
+import LocalPurchaseBulkSection from "./sections/LocalPurchaseBulkSection";
 import {
   getAllIndentForms,
   getAllLocalPurchaseForms,
@@ -51,7 +56,7 @@ const getNavLinksByRole = (role) => {
       { name: "PC and Payment", icon: <FaMoneyCheckAlt /> },
       { name: "Transport", icon: <FaShip /> },
       { name: "Material Received", icon: <FaTruck /> },
-      { name: "Summary Report", icon: <FaClipboardList /> },
+      { name: "Summary Rep  ort", icon: <FaClipboardList /> },
     ],
   };
 
@@ -1468,588 +1473,100 @@ export default function PurchasePage() {
           </div>
 
           {selectedOption === "Summary Report" && (
-            <div className="bg-white p-6 rounded-2xl shadow-md border">
-              <div className="text-lg font-semibold text-gray-800 mb-4">
-                Time Delay Summary (All Sections)
-              </div>
-              <div className="w-full overflow-x-auto">
-                <table className="min-w-max border text-xs">
-                  <thead className="bg-gray-200 sticky top-0 z-10">
-                    <tr>
-                      <th className="px-4 py-3 border-b text-left">Section</th>
-                      <th className="px-4 py-3 border-b text-center">
-                        Delayed Items
-                      </th>
-                      <th className="px-4 py-3 border-b text-center">
-                        Avg Delay (days)
-                      </th>
-                      <th className="px-4 py-3 border-b text-center">
-                        Max Delay (days)
-                      </th>
-                      <th className="px-4 py-3 border-b text-left">
-                        Top Unique IDs
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summaryReport.map((row) => (
-                      <tr
-                        key={row.label}
-                        className="odd:bg-white even:bg-gray-50"
-                      >
-                        <td className="px-4 py-2 border-b font-medium">
-                          {row.label}
-                        </td>
-                        <td className="px-4 py-2 border-b text-center">
-                          {row.count}
-                        </td>
-                        <td className="px-4 py-2 border-b text-center">
-                          {row.avg}
-                        </td>
-                        <td className="px-4 py-2 border-b text-center">
-                          {row.max}
-                        </td>
-                        <td className="px-4 py-2 border-b">
-                          {row.top.length ? row.top.join(", ") : "-"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <SummaryReportSection summaryReport={summaryReport} />
           )}
 
           {selectedOption !== "Summary Report" && (
             <div className="w-full max-h-[70vh] overflow-auto rounded-xl border border-gray-200">
               {selectedOption === "Store" && (
-                <div className="mb-4 p-4 bg-white rounded-xl shadow-md border">
-                  <div className="font-semibold text-gray-800 mb-2">
-                    Manual Close (Unique ID)
-                  </div>
-
-                  <div className="flex flex-wrap gap-3 items-end">
-                    <div className="flex flex-col">
-                      <label className="text-xs text-gray-600">Unique ID</label>
-                      <input
-                        type="text"
-                        className="border p-2 rounded w-64"
-                        placeholder="Enter Unique ID (e.g., DEMO-PC1-001)"
-                        value={manualCloseUniqueId}
-                        onChange={(e) => setManualCloseUniqueId(e.target.value)}
-                      />
-                    </div>
-
-                    <button
-                      className="px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-900 disabled:opacity-50"
-                      onClick={handleFetchManualClose}
-                      disabled={manualCloseLoading}
-                    >
-                      {manualCloseLoading ? "Fetching..." : "Fetch"}
-                    </button>
-
-                    <div className="flex flex-col flex-1 min-w-[240px]">
-                      <label className="text-xs text-gray-600">
-                        Reason (required)
-                      </label>
-                      <input
-                        type="text"
-                        className="border p-2 rounded w-full"
-                        placeholder="Reason to close (Excess received / Accepted extra / etc.)"
-                        value={manualCloseReason}
-                        onChange={(e) => setManualCloseReason(e.target.value)}
-                      />
-                    </div>
-
-                    <button
-                      className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                      onClick={handleManualClose}
-                      disabled={manualCloseLoading || !manualCloseRecord}
-                      title={
-                        !manualCloseRecord ? "Fetch a Unique ID first" : ""
-                      }
-                    >
-                      {manualCloseLoading ? "Closing..." : "Manual Close"}
-                    </button>
-                  </div>
-
-                  {manualCloseError && (
-                    <div className="mt-2 text-sm text-red-600">
-                      {manualCloseError}
-                    </div>
-                  )}
-                  {manualCloseSuccess && (
-                    <div className="mt-2 text-sm text-green-700">
-                      {manualCloseSuccess}
-                    </div>
-                  )}
-
-                  {manualCloseRecord && (
-                    <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-700">
-                      <div>
-                        <span className="font-semibold">Site:</span>{" "}
-                        {manualCloseRecord.site}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Unique ID:</span>{" "}
-                        {manualCloseRecord.uniqueId}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Section:</span>{" "}
-                        {manualCloseRecord.section}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Indent No:</span>{" "}
-                        {manualCloseRecord.indentNumber}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Item No:</span>{" "}
-                        {manualCloseRecord.itemNumber}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Vendor:</span>{" "}
-                        {manualCloseRecord.vendorName}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Total Qty:</span>{" "}
-                        {manualCloseRecord.totalQuantity}
-                      </div>
-                      <div>
-                        <span className="font-semibold">
-                          Store Received Qty:
-                        </span>{" "}
-                        {manualCloseRecord.storeReceivedQuantity ?? 0}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Store Status:</span>{" "}
-                        {manualCloseRecord.storeStatus ?? ""}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <StoreManualCloseSection
+                  manualCloseUniqueId={manualCloseUniqueId}
+                  setManualCloseUniqueId={setManualCloseUniqueId}
+                  handleFetchManualClose={handleFetchManualClose}
+                  manualCloseLoading={manualCloseLoading}
+                  manualCloseReason={manualCloseReason}
+                  setManualCloseReason={setManualCloseReason}
+                  handleManualClose={handleManualClose}
+                  manualCloseRecord={manualCloseRecord}
+                  manualCloseError={manualCloseError}
+                  manualCloseSuccess={manualCloseSuccess}
+                />
               )}
 
               {selectedOption === "Store" && (
-                <div className="mb-4 p-4 bg-white rounded-xl shadow-md border">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="font-semibold text-gray-800">
-                        Same Invoice for Multiple Items
-                        <span className="ml-2 text-xs text-gray-500">
-                          (select rows below, then upload one invoice PDF)
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="px-3 py-1.5 rounded bg-gray-100 text-gray-800 hover:bg-gray-200 text-xs font-semibold"
-                          onClick={() => {
-                            const ids = (renderedTableData || [])
-                              .map((r) => r?._id)
-                              .filter(Boolean);
-                            setStoreSelectedRowIds(ids);
-                          }}
-                        >
-                          Select All Visible
-                        </button>
-
-                        <button
-                          type="button"
-                          className="px-3 py-1.5 rounded bg-gray-100 text-gray-800 hover:bg-gray-200 text-xs font-semibold"
-                          onClick={clearStoreSelection}
-                        >
-                          Clear
-                        </button>
-
-                        <div className="text-xs text-gray-600">
-                          Selected:{" "}
-                          <span className="font-semibold">
-                            {storeSelectedRowIds.length}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-                      <div className="flex flex-col">
-                        <label className="text-xs text-gray-600">
-                          Invoice Number *
-                        </label>
-                        <input
-                          type="text"
-                          className="border p-2 rounded"
-                          value={storeBulkInvoiceNumber}
-                          onChange={(e) =>
-                            setStoreBulkInvoiceNumber(e.target.value)
-                          }
-                          placeholder="Invoice no"
-                        />
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="text-xs text-gray-600">
-                          Invoice Date
-                        </label>
-                        <input
-                          type="date"
-                          className="border p-2 rounded"
-                          value={storeBulkInvoiceDate}
-                          onChange={(e) =>
-                            setStoreBulkInvoiceDate(e.target.value)
-                          }
-                        />
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="text-xs text-gray-600">
-                          Received Date
-                        </label>
-                        <input
-                          type="date"
-                          className="border p-2 rounded"
-                          value={storeBulkReceivedDate}
-                          onChange={(e) =>
-                            setStoreBulkReceivedDate(e.target.value)
-                          }
-                        />
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="text-xs text-gray-600">
-                          Upload Invoice PDF *
-                        </label>
-                        <input
-                          key={storeBulkFileKey}
-                          type="file"
-                          accept="application/pdf"
-                          className="border p-2 rounded"
-                          onChange={(e) =>
-                            setStoreBulkFile(e.target.files?.[0] || null)
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={handleStoreBulkInvoiceUpload}
-                        disabled={storeBulkUploading}
-                        className={`px-4 py-2 rounded text-white text-sm font-semibold shadow-sm transition ${
-                          storeBulkUploading
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-red-600 hover:bg-red-700"
-                        }`}
-                      >
-                        {storeBulkUploading
-                          ? "Uploading..."
-                          : "Upload & Apply to Selected"}
-                      </button>
-
-                      {storeBulkError && (
-                        <div className="text-sm text-red-600">
-                          {storeBulkError}
-                        </div>
-                      )}
-                      {storeBulkSuccess && (
-                        <div className="text-sm text-green-700">
-                          {storeBulkSuccess}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <StoreBulkInvoiceSection
+                  renderedTableData={renderedTableData}
+                  setStoreSelectedRowIds={setStoreSelectedRowIds}
+                  clearStoreSelection={clearStoreSelection}
+                  storeSelectedRowIds={storeSelectedRowIds}
+                  storeBulkInvoiceNumber={storeBulkInvoiceNumber}
+                  setStoreBulkInvoiceNumber={setStoreBulkInvoiceNumber}
+                  storeBulkInvoiceDate={storeBulkInvoiceDate}
+                  setStoreBulkInvoiceDate={setStoreBulkInvoiceDate}
+                  storeBulkReceivedDate={storeBulkReceivedDate}
+                  setStoreBulkReceivedDate={setStoreBulkReceivedDate}
+                  storeBulkFileKey={storeBulkFileKey}
+                  setStoreBulkFile={setStoreBulkFile}
+                  handleStoreBulkInvoiceUpload={handleStoreBulkInvoiceUpload}
+                  storeBulkUploading={storeBulkUploading}
+                  storeBulkError={storeBulkError}
+                  storeBulkSuccess={storeBulkSuccess}
+                />
               )}
 
               {selectedOption === "PO Generation" && (
-                <div className="mb-4 border rounded-xl p-4 bg-white shadow-sm">
-                  <div className="flex flex-col gap-3">
-                    <div className="font-semibold text-sm text-gray-800">
-                      Bulk PO (one PO PDF → many selected items) — Selected:{" "}
-                      {poSelectedRowIds.length}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
-                      <div className="flex flex-col">
-                        <label className="text-xs text-gray-600">
-                          PO Number
-                        </label>
-                        <input
-                          className="border p-2 rounded text-xs"
-                          value={poBulkPoNumber}
-                          onChange={(e) => setPoBulkPoNumber(e.target.value)}
-                          placeholder="PO Number"
-                        />
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="text-xs text-gray-600">PO Date</label>
-                        <input
-                          type="date"
-                          className="border p-2 rounded text-xs"
-                          value={poBulkPoDate}
-                          onChange={(e) => setPoBulkPoDate(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="text-xs text-gray-600">
-                          Vendor Name
-                        </label>
-                        <input
-                          className="border p-2 rounded text-xs"
-                          value={poBulkVendorName}
-                          onChange={(e) => setPoBulkVendorName(e.target.value)}
-                          placeholder="Vendor"
-                        />
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="text-xs text-gray-600">
-                          Lead Days
-                        </label>
-                        <input
-                          type="number"
-                          className="border p-2 rounded text-xs"
-                          value={poBulkLeadDays}
-                          onChange={(e) => setPoBulkLeadDays(e.target.value)}
-                          placeholder="0"
-                          min="0"
-                        />
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="text-xs text-gray-600">
-                          Payment Condition
-                        </label>
-                        <select
-                          className="border p-2 rounded text-xs"
-                          value={poBulkPaymentCondition}
-                          onChange={(e) =>
-                            setPoBulkPaymentCondition(e.target.value)
-                          }
-                        >
-                          <option value="">--Select--</option>
-                          <option value="After Received">After Received</option>
-                          <option value="Before Dispatch">
-                            Before Dispatch
-                          </option>
-                          <option value="PWP BBD">PWP BBD</option>
-                          <option value="PWP BBD FAR">PWP BBD FAR</option>
-                          <option value="PWP BBD PAPW">PWP BBD PAPW</option>
-                          <option value="PAPW">PAPW</option>
-                        </select>
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="text-xs text-gray-600">Amount</label>
-                        <input
-                          type="number"
-                          className="border p-2 rounded text-xs"
-                          value={poBulkAmount}
-                          onChange={(e) => setPoBulkAmount(e.target.value)}
-                          placeholder="0"
-                          min="0"
-                        />
-                      </div>
-
-                      {String(poBulkPaymentCondition || "")
-                        .toUpperCase()
-                        .includes("PAPW") && (
-                        <div className="flex flex-col">
-                          <label className="text-xs text-gray-600">
-                            PAPW Days
-                          </label>
-                          <input
-                            type="number"
-                            className="border p-2 rounded text-xs"
-                            value={poBulkPapwDays}
-                            onChange={(e) => setPoBulkPapwDays(e.target.value)}
-                            placeholder="0"
-                            min="0"
-                          />
-                        </div>
-                      )}
-
-                      <div className="flex flex-col">
-                        <label className="text-xs text-gray-600">
-                          Upload PO PDF
-                        </label>
-                        <input
-                          key={poBulkFileKey}
-                          type="file"
-                          accept="application/pdf"
-                          className="text-xs"
-                          onChange={(e) =>
-                            setPoBulkFile(e.target.files?.[0] || null)
-                          }
-                        />
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-xs disabled:opacity-50"
-                          onClick={handlePoBulkUpload}
-                          disabled={poBulkUploading}
-                        >
-                          {poBulkUploading ? "Uploading..." : "Upload & Apply"}
-                        </button>
-
-                        <button
-                          className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded text-xs"
-                          onClick={() => {
-                            clearPoSelection();
-                            setPoBulkError("");
-                            setPoBulkSuccess("");
-                          }}
-                          type="button"
-                        >
-                          Clear Selection
-                        </button>
-                      </div>
-                    </div>
-
-                    {poBulkError && (
-                      <div className="text-sm text-red-600">{poBulkError}</div>
-                    )}
-                    {poBulkSuccess && (
-                      <div className="text-sm text-green-700">
-                        {poBulkSuccess}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <PoBulkSection
+                  poSelectedRowIds={poSelectedRowIds}
+                  poBulkPoNumber={poBulkPoNumber}
+                  setPoBulkPoNumber={setPoBulkPoNumber}
+                  poBulkPoDate={poBulkPoDate}
+                  setPoBulkPoDate={setPoBulkPoDate}
+                  poBulkVendorName={poBulkVendorName}
+                  setPoBulkVendorName={setPoBulkVendorName}
+                  poBulkLeadDays={poBulkLeadDays}
+                  setPoBulkLeadDays={setPoBulkLeadDays}
+                  poBulkPaymentCondition={poBulkPaymentCondition}
+                  setPoBulkPaymentCondition={setPoBulkPaymentCondition}
+                  poBulkAmount={poBulkAmount}
+                  setPoBulkAmount={setPoBulkAmount}
+                  poBulkPapwDays={poBulkPapwDays}
+                  setPoBulkPapwDays={setPoBulkPapwDays}
+                  poBulkFileKey={poBulkFileKey}
+                  setPoBulkFile={setPoBulkFile}
+                  handlePoBulkUpload={handlePoBulkUpload}
+                  poBulkUploading={poBulkUploading}
+                  clearPoSelection={clearPoSelection}
+                  setPoBulkError={setPoBulkError}
+                  setPoBulkSuccess={setPoBulkSuccess}
+                  poBulkError={poBulkError}
+                  poBulkSuccess={poBulkSuccess}
+                />
               )}
 
               {/* ------------------ Local Purchase Bulk Update (Invoice Date / Vendor / Remarks) ------------------ */}
               {selectedOption === "Local Purchase" && (
-                <div className="bg-white p-4 rounded-xl shadow-md mb-4 border">
-                  <div className="font-semibold text-sm mb-3 text-gray-700">
-                    Local Purchase Bulk Update (for selected rows)
-                  </div>
-
-                  <div className="flex flex-wrap items-end gap-3">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="px-3 py-2 text-xs rounded bg-gray-100 border hover:bg-gray-200"
-                        onClick={() => selectAllLpRows(renderedTableData)}
-                      >
-                        Select All
-                      </button>
-                      <button
-                        type="button"
-                        className="px-3 py-2 text-xs rounded bg-gray-100 border hover:bg-gray-200"
-                        onClick={clearLpSelection}
-                      >
-                        Clear
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col">
-                      <label className="text-xs text-gray-600 mb-1">
-                        Invoice Date
-                      </label>
-                      <input
-                        type="date"
-                        className="border p-2 rounded text-xs"
-                        value={lpBulkInvoiceDate}
-                        onChange={(e) => setLpBulkInvoiceDate(e.target.value)}
-                      />
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="text-xs text-gray-600 mb-1">
-                        Invoice Number
-                      </label>
-                      <input
-                        type="text"
-                        className="border p-2 rounded text-xs"
-                        value={lpBulkInvoiceNumber}
-                        onChange={(e) => setLpBulkInvoiceNumber(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="flex flex-col">
-                      <label className="text-xs text-gray-600 mb-1">
-                        Vendor Name
-                      </label>
-                      <input
-                        type="text"
-                        className="border p-2 rounded text-xs"
-                        value={lpBulkVendorName}
-                        onChange={(e) => setLpBulkVendorName(e.target.value)}
-                        placeholder="Vendor"
-                      />
-                    </div>
-
-                    <div className="flex flex-col">
-                      <label className="text-xs text-gray-600 mb-1">
-                        Mode of Transport
-                      </label>
-                      <select
-                        className="border p-2 rounded text-xs"
-                        value={lpBulkModeOfTransport}
-                        onChange={(e) =>
-                          setLpBulkModeOfTransport(e.target.value)
-                        }
-                      >
-                        <option value="">--Select--</option>
-                        <option value="By Hand">By Hand</option>
-                        <option value="By Transport">By Transport</option>
-                      </select>
-                    </div>
-
-                    <div className="flex flex-col">
-                      <label className="text-xs text-gray-600 mb-1">
-                        Transporter Name
-                      </label>
-                      <input
-                        type="text"
-                        className="border p-2 rounded text-xs"
-                        value={lpBulkTransporterName}
-                        onChange={(e) =>
-                          setLpBulkTransporterName(e.target.value)
-                        }
-                        placeholder="Transporter"
-                      />
-                    </div>
-
-                    <div className="flex flex-col flex-1 min-w-[200px]">
-                      <label className="text-xs text-gray-600 mb-1">
-                        Remarks
-                      </label>
-                      <input
-                        type="text"
-                        className="border p-2 rounded text-xs w-full"
-                        value={lpBulkRemarks}
-                        onChange={(e) => setLpBulkRemarks(e.target.value)}
-                        placeholder="Remarks"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      className="px-4 py-2 text-xs rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
-                      onClick={handleLocalPurchaseBulkApply}
-                      disabled={lpBulkUploading}
-                    >
-                      {lpBulkUploading ? "Applying..." : "Apply to Selected"}
-                    </button>
-                  </div>
-
-                  <div className="mt-2 text-xs">
-                    <div className="text-gray-600">
-                      Selected rows: {lpSelectedRowIds.length}
-                    </div>
-                    {lpBulkError && (
-                      <div className="text-red-600 mt-1">{lpBulkError}</div>
-                    )}
-                    {lpBulkSuccess && (
-                      <div className="text-green-700 mt-1">{lpBulkSuccess}</div>
-                    )}
-                  </div>
-                </div>
+                <LocalPurchaseBulkSection
+                  selectAllLpRows={selectAllLpRows}
+                  renderedTableData={renderedTableData}
+                  clearLpSelection={clearLpSelection}
+                  lpBulkInvoiceDate={lpBulkInvoiceDate}
+                  setLpBulkInvoiceDate={setLpBulkInvoiceDate}
+                  lpBulkInvoiceNumber={lpBulkInvoiceNumber}
+                  setLpBulkInvoiceNumber={setLpBulkInvoiceNumber}
+                  lpBulkVendorName={lpBulkVendorName}
+                  setLpBulkVendorName={setLpBulkVendorName}
+                  lpBulkModeOfTransport={lpBulkModeOfTransport}
+                  setLpBulkModeOfTransport={setLpBulkModeOfTransport}
+                  lpBulkTransporterName={lpBulkTransporterName}
+                  setLpBulkTransporterName={setLpBulkTransporterName}
+                  lpBulkRemarks={lpBulkRemarks}
+                  setLpBulkRemarks={setLpBulkRemarks}
+                  handleLocalPurchaseBulkApply={handleLocalPurchaseBulkApply}
+                  lpBulkUploading={lpBulkUploading}
+                  lpSelectedRowIds={lpSelectedRowIds}
+                  lpBulkError={lpBulkError}
+                  lpBulkSuccess={lpBulkSuccess}
+                />
               )}
 
               <table className="min-w-max border border-gray-200 rounded-xl whitespace-nowrap text-xs">
@@ -5180,7 +4697,14 @@ export default function PurchasePage() {
                   : "bg-green-600 text-white hover:bg-green-700"
               }`}
             >
-              {saving ? "SAVING..." : "SUBMIT UPDATES"}
+              {saving ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Saving...
+                </span>
+              ) : (
+                "SUBMIT UPDATES"
+              )}
             </button>
           </div>
         )}

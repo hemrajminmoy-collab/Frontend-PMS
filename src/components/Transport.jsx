@@ -96,6 +96,7 @@ export default function Transport() {
   const [uniqueIdFilter, setUniqueIdFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -186,11 +187,13 @@ export default function Transport() {
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     if (newRows.length === 0 && existingRows.length === 0) {
       alert("Nothing to submit");
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const rowsToUpdate = existingRows.filter((r) => r && r._id);
       const rowsToCreate = [
@@ -220,6 +223,8 @@ export default function Transport() {
     } catch (err) {
       console.error(err);
       alert("Failed to save transport data");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -409,16 +414,25 @@ export default function Transport() {
           <div className="flex justify-end gap-4 mt-6">
             <button
               onClick={handleAddRow}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               Add Row
             </button>
 
             <button
               onClick={handleSubmit}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Submit
+              {isSubmitting ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Submitting...
+                </span>
+              ) : (
+                "Submit"
+              )}
             </button>
           </div>
         </Motion.div>

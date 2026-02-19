@@ -20,6 +20,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Inject Google Agu Font
   useEffect(() => {
@@ -31,20 +32,29 @@ export default function LoginForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setError("");
+    setIsSubmitting(true);
 
-    const success = await loginUser({ username, password });
+    try {
+      const success = await loginUser({ username, password });
 
-    const allowedRoles = ["ADMIN", "InputUser", "DEO", "PSE", "PA", "PC", "Store", "PAC"];
+      const allowedRoles = ["ADMIN", "InputUser", "DEO", "PSE", "PA", "PC", "Store", "PAC"];
 
-    if (allowedRoles.includes(success)) {
-      setRole(success);
-      setIsLoggedIn(true);
+      if (allowedRoles.includes(success)) {
+        setRole(success);
+        setIsLoggedIn(true);
 
-      localStorage.setItem("role", success);
-      localStorage.setItem("username", username);
-    } else {
+        localStorage.setItem("role", success);
+        localStorage.setItem("username", username);
+      } else {
+        setError("error");
+      }
+    } catch (err) {
       setError("error");
+      console.error("Login failed:", err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -86,6 +96,7 @@ export default function LoginForm() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="flex-1 bg-transparent outline-none text-[16px]"
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -100,9 +111,10 @@ export default function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="flex-1 bg-transparent outline-none text-[16px]"
+                  disabled={isSubmitting}
                 />
                 <span
-                  onClick={() => setShowPassword((p) => !p)}
+                  onClick={() => !isSubmitting && setShowPassword((p) => !p)}
                   className="ml-2 text-gray-600 hover:text-gray-800 cursor-pointer select-none"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -117,11 +129,19 @@ export default function LoginForm() {
 
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="w-full text-white font-medium py-3 rounded-full 
                           bg-gradient-to-r from-red-500 to-red-700 
-                          hover:opacity-90 transition"
+                          hover:opacity-90 transition disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                LOGIN
+                {isSubmitting ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    LOGGING IN...
+                  </span>
+                ) : (
+                  "LOGIN"
+                )}
               </button>
             </form>
 
