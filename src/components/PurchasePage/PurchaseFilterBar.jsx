@@ -23,15 +23,15 @@ export default function PurchaseFilterBar({
   setEndDate,
 }) {
   return (
-    <div className="flex justify-between items-center mb-3">
-      <div className="flex gap-2">
+    <div className="mb-3 flex flex-col gap-3 xl:flex-row xl:justify-between xl:items-center">
+      <div className="flex flex-wrap gap-2">
         {selectedOption === "PC Follow Up" && (
           <>
             {["PC1", "PC2", "PC3"].map((pc, index) => (
               <button
                 key={pc}
                 onClick={() => setPcFollowUp(pc)}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-[11px] sm:text-xs font-semibold shadow-sm transition
                   ${
                     pcFollowUp === pc
                       ? "bg-red-600 text-white"
@@ -55,7 +55,7 @@ export default function PurchaseFilterBar({
               <button
                 key={item.key}
                 onClick={() => setPaymentFollowUp(item.key)}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-[11px] sm:text-xs font-semibold shadow-sm transition
                   ${
                     paymentFollowUp === item.key
                       ? "bg-red-600 text-white"
@@ -69,11 +69,11 @@ export default function PurchaseFilterBar({
         )}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {selectedOption === "Store" && showExcessBox && (
           <button
             onClick={() => setShowExcessBox((v) => !v)}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition ${
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-[11px] sm:text-xs font-semibold shadow-sm transition ${
               showExcessBox
                 ? "bg-red-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-red-100"
@@ -85,8 +85,8 @@ export default function PurchaseFilterBar({
         )}
 
         <div className="flex items-center gap-2 bg-red-100 px-3 py-2 rounded-lg shadow-sm">
-          <FaSearch className="text-red-700 text-xl font-bold" />
-          <label className="text-lg font-bold text-red-800">Find By :</label>
+          <FaSearch className="text-red-700 text-base sm:text-lg font-bold" />
+          <label className="text-sm sm:text-base font-bold text-red-800">Find By :</label>
         </div>
 
         <select

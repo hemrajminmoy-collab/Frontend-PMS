@@ -241,18 +241,24 @@ export default function IndentCreationForm() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Navbar */}
-      <nav className="w-full py-6 px-10 flex justify-between items-center bg-transparent mt-4">
+      <nav className="w-full px-4 py-4 sm:px-8 sm:py-6 lg:px-10 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center bg-transparent">
         <div className="flex items-center gap-4">
-          <FaShoppingCart className="text-red-600 text-5xl" />
+          <FaShoppingCart className="text-red-600 text-4xl sm:text-5xl shrink-0" />
           <h1
-            className="text-4xl font-bold tracking-wide text-gray-900"
+            className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-wide text-gray-900 leading-tight"
             style={{ fontFamily: "'Agu Display', sans-serif" }}
           >
             PURCHASE MANAGEMENT SYSTEM
           </h1>
         </div>
 
-        <div className="relative group">
+        <button
+          onClick={handleLogout}
+          className="sm:hidden px-3 py-1.5 text-xs rounded-lg bg-red-600 text-white hover:bg-red-700 transition self-end"
+        >
+          Logout
+        </button>
+        <div className="relative group hidden sm:block">
           <div className="flex items-center gap-3 cursor-pointer select-none">
             <div className="relative w-11 h-11 flex items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-red-500 opacity-80 blur-[1px]" />
@@ -293,17 +299,17 @@ export default function IndentCreationForm() {
       </nav>
 
       {/* Buttons */}
-      <div className="flex flex-row items-center justify-end p-6 mt-6 gap-6">
+      <div className="flex flex-wrap items-center justify-center sm:justify-end p-4 sm:p-6 mt-2 sm:mt-4 gap-3 sm:gap-4">
         <button
           onClick={handleCreateTemplate}
-          className="px-6 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
+          className="w-full sm:w-auto px-4 py-2 text-xs sm:px-6 sm:py-3 sm:text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
         >
           Create Excel Template
         </button>
 
         <button
           onClick={() => setShowBulkUpload(!showBulkUpload)}
-          className="px-6 py-3 rounded-full bg-purple-600 text-white hover:bg-purple-700 transition"
+          className="w-full sm:w-auto px-4 py-2 text-xs sm:px-6 sm:py-3 sm:text-sm rounded-full bg-purple-600 text-white hover:bg-purple-700 transition"
         >
           {showBulkUpload ? "Hide Bulk Upload" : "Bulk Upload from Excel"}
         </button>
@@ -311,7 +317,7 @@ export default function IndentCreationForm() {
 
       {/* Bulk Upload Section */}
       {showBulkUpload && (
-        <div className="mx-auto bg-gray-200 p-6 rounded-xl mb-6 w-full max-w-6xl">
+        <div className="mx-auto bg-gray-200 p-4 sm:p-6 rounded-xl mb-6 w-[95%] max-w-6xl">
           <input
             type="file"
             accept=".xlsx, .xls"
@@ -373,7 +379,7 @@ export default function IndentCreationForm() {
               <button
                 onClick={handleBulkSave}
                 disabled={isBulkSaving}
-                className="mt-4 px-6 py-3 rounded-full bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                className="mt-4 px-4 py-2 text-xs sm:px-6 sm:py-3 sm:text-sm rounded-full bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isBulkSaving ? (
                   <span className="inline-flex items-center gap-2">
@@ -390,17 +396,17 @@ export default function IndentCreationForm() {
       )}
 
       {/* Form */}
-      <div className="flex flex-col justify-center items-center p-10 mt-[-30px] w-full gap-6">
+      <div className="flex flex-col justify-center items-center px-4 pb-8 pt-2 sm:p-8 lg:p-10 w-full gap-6">
         <Motion.form
           onSubmit={handleSubmit}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="p-10 rounded-3xl w-full max-w-4xl bg-transparent"
+          className="p-4 sm:p-8 lg:p-10 rounded-3xl w-full max-w-4xl bg-transparent"
           style={{ fontFamily: "Poppins, sans-serif" }}
         >
           <div className="w-full rounded-xl mb-10 p-4 text-center bg-red-600 shadow-md">
-            <h2 className="text-3xl font-bold text-white">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">
               Indent Creation Form
             </h2>
           </div>
@@ -667,7 +673,7 @@ export default function IndentCreationForm() {
           </div>
 
           {/* Footer */}
-          <div className="flex justify-between items-center pt-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center pt-8">
             <label className="flex items-center gap-2 text-gray-700 font-medium">
               <input
                 type="checkbox"
@@ -679,12 +685,12 @@ export default function IndentCreationForm() {
               Local Purchase
             </label>
 
-            <div className="flex gap-4">
+            <div className="flex w-full sm:w-auto gap-3 sm:gap-4">
               <button
                 type="button"
                 onClick={handleCancel}
                 disabled={isSubmitting}
-                className="px-6 py-3 rounded-full bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                className="flex-1 sm:flex-none px-4 py-2 text-xs sm:px-6 sm:py-3 sm:text-sm rounded-full bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -692,7 +698,7 @@ export default function IndentCreationForm() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-3 rounded-full bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                className="flex-1 sm:flex-none px-4 py-2 text-xs sm:px-6 sm:py-3 sm:text-sm rounded-full bg-green-600 text-white hover:bg-green-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <span className="inline-flex items-center gap-2">

@@ -65,20 +65,20 @@ export default function LoginForm() {
   // ================= LOGIN PAGE =================
   return (
     <div className="min-h-screen bg-gray-100">
-      <nav className="w-full py-8 px-12 flex items-center gap-5 mt-4 bg-transparent">
-        <FaShoppingCart className="text-red-600 text-6xl" />
+      <nav className="w-full px-4 py-4 sm:px-8 sm:py-6 lg:px-12 lg:py-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5 bg-transparent">
+        <FaShoppingCart className="text-red-600 text-4xl sm:text-5xl lg:text-6xl shrink-0" />
         <h1
-          className="text-6xl font-bold tracking-wide text-gray-900"
+          className="text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-wide text-gray-900 leading-tight"
           style={{ fontFamily: "'Agu Display', sans-serif" }}
         >
           PURCHASE MANAGEMENT SYSTEM
         </h1>
       </nav>
 
-      <div className="flex items-center justify-center p-10 mt-[-20px]">
-        <div className="flex flex-col md:flex-row gap-10">
+      <div className="flex items-center justify-center px-4 pb-8 pt-2 sm:p-8 lg:p-10">
+        <div className="flex w-full max-w-[1400px] flex-col gap-8 lg:flex-row lg:gap-10">
           <div
-            className="p-10 w-[450px] flex flex-col justify-center text-center bg-transparent shadow-none"
+            className="w-full max-w-xl p-4 sm:p-8 lg:p-10 mx-auto lg:mx-0 flex flex-col justify-center text-center bg-transparent shadow-none"
             style={{ fontFamily: "Poppins, sans-serif" }}
           >
             <h2 className="text-4xl font-semibold mb-2 text-gray-800">Welcome Back</h2>
@@ -130,7 +130,7 @@ export default function LoginForm() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full text-white font-medium py-3 rounded-full 
+                className="w-full text-white font-medium text-sm sm:text-base py-2 sm:py-3 rounded-full 
                           bg-gradient-to-r from-red-500 to-red-700 
                           hover:opacity-90 transition disabled:opacity-70 disabled:cursor-not-allowed"
               >
@@ -150,7 +150,7 @@ export default function LoginForm() {
             </p>
           </div>
 
-          <div className="w-[760px] md:w-[900px] h-[600px] flex items-center justify-center">
+          <div className="w-full max-w-[900px] h-[260px] sm:h-[420px] lg:h-[600px] mx-auto flex items-center justify-center">
             <Motion.img
               src={loginImg}
               alt="Login Illustration"

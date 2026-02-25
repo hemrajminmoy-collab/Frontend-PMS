@@ -89,12 +89,12 @@ const handleSubmit = async (e) => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <nav className="w-full py-6 px-10 flex justify-between items-center bg-transparent mt-4">
+      <nav className="w-full px-4 py-4 sm:px-8 sm:py-6 lg:px-10 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center bg-transparent">
               {/* Left Section */}
               <div className="flex items-center gap-4">
-                <FaShoppingCart className="text-red-600 text-5xl" />
+                <FaShoppingCart className="text-red-600 text-4xl sm:text-5xl shrink-0" />
                 <h1
-                  className="text-6xl font-bold tracking-wide text-gray-900"
+                  className="text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-wide text-gray-900 leading-tight"
                   style={{ fontFamily: "'Agu Display', sans-serif" }}
                 >
                   PURCHASE MANAGEMENT SYSTEM
@@ -102,7 +102,13 @@ const handleSubmit = async (e) => {
               </div>
       
               {/* Right User Profile */}
-              <div className="relative group">
+              <button
+                onClick={handleLogout}
+                className="sm:hidden px-3 py-1.5 text-xs rounded-lg bg-red-600 text-white hover:bg-red-700 transition self-end"
+              >
+                Logout
+              </button>
+              <div className="relative group hidden sm:block">
                 {/* Profile Button */}
                 <div className="flex items-center gap-3 cursor-pointer select-none">
                   
@@ -152,12 +158,12 @@ const handleSubmit = async (e) => {
             </nav>
 
       {/* MAIN CONTENT */}
-      <div className="flex items-center justify-center p-10 mt-[-20px]">
-        <div className="flex flex-col md:flex-row gap-10">
+      <div className="flex items-center justify-center px-4 pb-8 pt-2 sm:p-8 lg:p-10">
+        <div className="flex w-full max-w-[1400px] flex-col gap-8 lg:flex-row lg:gap-10">
 
           {/* LEFT FORM CARD */}
           <div
-            className="p-10 w-[450px] flex flex-col justify-center text-center bg-transparent shadow-none"
+            className="w-full max-w-xl p-4 sm:p-8 lg:p-10 mx-auto lg:mx-0 flex flex-col justify-center text-center bg-transparent shadow-none"
             style={{ fontFamily: "Poppins, sans-serif" }}
           >
             <h2 className="text-4xl font-semibold mb-2 text-gray-800">
@@ -230,6 +236,7 @@ const handleSubmit = async (e) => {
                   <option value="PC">Process Co-Ordinator (PC)</option>
                   <option value="PSE">Purchase Senior Executive(PSE)</option>
                   <option value="PAC">PAC</option>
+                  <option value="Store">Store</option>
                 </select>
               </div>
 
@@ -237,10 +244,10 @@ const handleSubmit = async (e) => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-className="w-full text-white font-medium py-3 rounded-full 
+className="w-full text-white font-medium text-sm sm:text-base py-2 sm:py-3 rounded-full 
            bg-gradient-to-r from-red-500 to-red-700 
            hover:opacity-90 transition disabled:opacity-70 disabled:cursor-not-allowed
-           mb-[95%]"
+           mb-2"
 
               >
                 {isSubmitting ? (
@@ -256,7 +263,7 @@ className="w-full text-white font-medium py-3 rounded-full
           </div>
 
           {/* RIGHT IMAGE */}
-          <div className="w-[760px] md:w-[900px] h-[600px] flex items-center justify-center">
+          <div className="w-full max-w-[900px] h-[260px] sm:h-[420px] lg:h-[600px] mx-auto flex items-center justify-center">
             <Motion.img
               src={loginImg}
               alt="Add User Illustration"

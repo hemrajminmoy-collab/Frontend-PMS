@@ -72,7 +72,7 @@ export default function PoBulkSection({
               className="border p-2 rounded text-xs"
               value={poBulkLeadDays}
               onChange={(e) => setPoBulkLeadDays(e.target.value)}
-              placeholder="0"
+              placeholder="Lead days"
               min="0"
             />
           </div>
@@ -101,7 +101,7 @@ export default function PoBulkSection({
               className="border p-2 rounded text-xs"
               value={poBulkAmount}
               onChange={(e) => setPoBulkAmount(e.target.value)}
-              placeholder="0"
+              placeholder="Amount"
               min="0"
             />
           </div>
@@ -116,7 +116,7 @@ export default function PoBulkSection({
                 className="border p-2 rounded text-xs"
                 value={poBulkPapwDays}
                 onChange={(e) => setPoBulkPapwDays(e.target.value)}
-                placeholder="0"
+                placeholder="PAPW Days"
                 min="0"
               />
             </div>

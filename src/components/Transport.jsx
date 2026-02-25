@@ -230,18 +230,24 @@ export default function Transport() {
 
   return (
     <div className="min-h-screen bg-gray-100 font-poppins">
-      <nav className="w-full py-6 px-10 flex justify-between items-center bg-transparent mt-4">
+      <nav className="w-full px-4 py-4 sm:px-8 sm:py-6 lg:px-10 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center bg-transparent">
         <div className="flex items-center gap-4">
-          <FaShoppingCart className="text-red-600 text-5xl" />
+          <FaShoppingCart className="text-red-600 text-4xl sm:text-5xl shrink-0" />
           <h1
-            className="text-4xl font-bold tracking-wide text-gray-900"
+            className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-wide text-gray-900 leading-tight"
             style={{ fontFamily: "'Agu Display', sans-serif" }}
           >
             PURCHASE MANAGEMENT SYSTEM
           </h1>
         </div>
 
-        <div className="relative group">
+        <button
+          onClick={handleLogout}
+          className="sm:hidden px-3 py-1.5 text-xs rounded-lg bg-red-600 text-white hover:bg-red-700 transition self-end"
+        >
+          Logout
+        </button>
+        <div className="relative group hidden sm:block">
           <div className="flex items-center gap-3 cursor-pointer select-none">
             <div className="relative w-11 h-11 flex items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-red-500 opacity-80 blur-[1px]" />
@@ -280,10 +286,10 @@ export default function Transport() {
         </div>
       </nav>
 
-      <main className="px-6 py-10">
-        <Motion.div className="bg-white rounded-3xl shadow-md p-8">
+      <main className="px-4 sm:px-6 py-6 sm:py-10">
+        <Motion.div className="bg-white rounded-3xl shadow-md p-4 sm:p-8">
               <div className="mb-6 p-4 bg-red-600 rounded-xl text-center">
-                <h1 className="text-3xl font-bold text-white">Transport</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white">Transport</h1>
               </div>
 
               <div className="mb-4 p-4 bg-white rounded-xl shadow-md border">
@@ -321,7 +327,7 @@ export default function Transport() {
 
                   <button
                     type="button"
-                    className="px-4 py-2 rounded bg-gray-100 text-gray-800 hover:bg-gray-200 text-xs font-semibold"
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 rounded bg-gray-100 text-gray-800 hover:bg-gray-200 text-[11px] sm:text-xs font-semibold"
                     onClick={() => {
                       setUniqueIdFilter("");
                       setDateFrom("");
@@ -411,11 +417,11 @@ export default function Transport() {
             </table>
           </div>
 
-          <div className="flex justify-end gap-4 mt-6">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-3 sm:gap-4 mt-6">
             <button
               onClick={handleAddRow}
               disabled={isSubmitting}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-4 py-2 text-xs sm:px-6 sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               Add Row
             </button>
@@ -423,7 +429,7 @@ export default function Transport() {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-4 py-2 text-xs sm:px-6 sm:text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <span className="inline-flex items-center gap-2">

@@ -11,7 +11,7 @@ export default function PurchaseSidebar({
   currentUsername,
 }) {
   return (
-    <aside className="purchase-sidebar w-64 text-black p-6 fixed left-0 top-0 h-screen flex flex-col max-h-[117%] mt-[102px]">
+    <aside className="purchase-sidebar hidden lg:flex lg:w-64 text-black p-6 lg:fixed lg:left-0 lg:top-[102px] lg:h-[calc(100vh-102px)] flex-col">
 
       <div className="flex-1 overflow-y-auto">
         {Object.entries(navLinks).map(([section, links]) => (
@@ -49,7 +49,7 @@ export default function PurchaseSidebar({
         ))}
 
         {role === "ADMIN" && (
-          <div className="mt-60">
+          <div className="mt-8">
             <button
               onClick={onAddUser}
               className="
@@ -66,7 +66,7 @@ export default function PurchaseSidebar({
         )}
 
         {currentUsername === "Minmoy" && (
-          <div className="mt-4">
+          <div className="mt-3">
             <button
               onClick={onEditPassword}
               className="

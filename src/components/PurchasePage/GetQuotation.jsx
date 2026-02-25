@@ -511,6 +511,13 @@ export default function PurchasePage() {
     }
   };
 
+  const parseOptionalNumber = (value) => {
+    const str = String(value ?? "").trim();
+    if (!str) return "";
+    const n = Number(str);
+    return Number.isFinite(n) ? n : "";
+  };
+
   const createPoAndLinkItems = async ({
     rowIds,
     poNumber,
@@ -528,10 +535,10 @@ export default function PurchasePage() {
     fd.append("poNumber", poNumber || "");
     fd.append("poDate", poDate || "");
     fd.append("vendorName", vendorName || "");
-    fd.append("leadDays", String(leadDays ?? 0));
-    fd.append("amount", String(amount ?? 0));
+    fd.append("leadDays", String(leadDays ?? ""));
+    fd.append("amount", String(amount ?? ""));
     fd.append("paymentCondition", paymentCondition || "");
-    fd.append("papwDays", String(papwDays ?? 0));
+    fd.append("papwDays", String(papwDays ?? ""));
     fd.append("username", localStorage.getItem("username") || "");
     fd.append("role", localStorage.getItem("role") || "");
 
@@ -609,10 +616,10 @@ export default function PurchasePage() {
           poNumber: poBulkPoNumber,
           poDate: poBulkPoDate,
           vendorName: poBulkVendorName,
-          leadDays: Number(poBulkLeadDays || 0),
-          amount: Number(poBulkAmount || 0),
+          leadDays: parseOptionalNumber(poBulkLeadDays),
+          amount: parseOptionalNumber(poBulkAmount),
           paymentCondition: poBulkPaymentCondition,
-          papwDays: Number(poBulkPapwDays || 0),
+          papwDays: parseOptionalNumber(poBulkPapwDays),
           poPdfWebViewLink: webViewLink,
           poPdfDriveFileId: driveFileId,
         });
@@ -1380,6 +1387,16 @@ export default function PurchasePage() {
     selectedOption === "Indent Verification" ||
     selectedOption === "Local Purchase" ||
     selectedOption === "PMS Master Sheet";
+  const mobileNavOptions = React.useMemo(
+    () => [
+      ...new Set(
+        Object.values(navLinks)
+          .flat()
+          .map((link) => link.name),
+      ),
+    ],
+    [navLinks],
+  );
 
   return (
     <div className="purchase-shell min-h-screen font-poppins">
@@ -1420,6 +1437,40 @@ export default function PurchasePage() {
           border: 1px solid var(--panel-edge);
           box-shadow: 0 20px 60px rgba(17, 24, 39, 0.12);
         }
+
+        .purchase-shell .sticky-item-description {
+          position: sticky;
+          left: 0;
+          z-index: 6;
+          background: #ffffff;
+          background-clip: padding-box;
+          box-shadow: 2px 0 0 rgba(17, 24, 39, 0.08);
+          width: 260px;
+          min-width: 260px;
+          max-width: 260px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .purchase-shell .sticky-item-description-head {
+          z-index: 30;
+          background: #e5e7eb;
+        }
+
+        @media (max-width: 1023px) {
+          .purchase-shell .sticky-item-description,
+          .purchase-shell .sticky-item-description-head {
+            position: static;
+            left: auto;
+            width: auto;
+            min-width: 0;
+            max-width: none;
+            z-index: auto;
+            box-shadow: none;
+            overflow: visible;
+            text-overflow: clip;
+          }
+        }
       `}</style>
       <PurchaseTopNav onLogout={handleLogout} />
       <PurchaseSidebar
@@ -1438,13 +1489,39 @@ export default function PurchasePage() {
         currentUsername={localStorage.getItem("username") || ""}
       />
 
+      <div className="lg:hidden px-4 sm:px-6">
+        <div className="purchase-card rounded-2xl p-3 sm:p-4">
+          <label className="block text-xs font-semibold text-gray-600 mb-1">
+            Section
+          </label>
+          <select
+            className="w-full border rounded-lg p-2 text-sm"
+            value={selectedOption}
+            onChange={(e) => {
+              const name = e.target.value;
+              if (name === "Transport") {
+                navigate("/transport");
+              } else {
+                setSelectedOption(name);
+              }
+            }}
+          >
+            {mobileNavOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* ------------------ MAIN CONTENT ------------------ */}
-      <main className="ml-64 ">
+      <main className="px-4 pb-6 sm:px-6 lg:ml-64 lg:px-8">
         <Motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="purchase-card rounded-3xl p-8"
+          className="purchase-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8"
         >
           <PurchaseFilterBar
             selectedOption={selectedOption}
@@ -1469,7 +1546,7 @@ export default function PurchasePage() {
           />
 
           <div className="mb-8 p-4 bg-red-600 rounded-xl shadow-md text-center">
-            <h1 className="text-3xl font-bold text-white">Purchase</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Purchase</h1>
           </div>
 
           {selectedOption === "Summary Report" && (
@@ -1477,7 +1554,7 @@ export default function PurchasePage() {
           )}
 
           {selectedOption !== "Summary Report" && (
-            <div className="w-full max-h-[70vh] overflow-auto rounded-xl border border-gray-200">
+            <div className="w-full max-h-[65vh] sm:max-h-[70vh] overflow-auto rounded-xl border border-gray-200">
               {selectedOption === "Store" && (
                 <StoreManualCloseSection
                   manualCloseUniqueId={manualCloseUniqueId}
@@ -1570,7 +1647,7 @@ export default function PurchasePage() {
               )}
 
               <table className="min-w-max border border-gray-200 rounded-xl whitespace-nowrap text-xs">
-                <thead className="bg-gray-200 rounded-t-xl sticky top-0 z-10">
+                <thead className="bg-gray-200 rounded-t-xl sticky top-0 z-20">
                   <tr className="text-sm">
                     {/* ------------------------- COMPARISON STATEMENT ------------------------- */}
                     {selectedOption === "Comparison Statement" ? (
@@ -1617,7 +1694,9 @@ export default function PurchasePage() {
                         <th className="px-4 py-3 border-b">Unique Id</th>
                         <th className="px-4 py-3 border-b">I.N</th>
                         <th className="px-4 py-3 border-b">Item No</th>
-                        <th className="px-4 py-3 border-b">Item Description</th>
+                        <th className="px-4 py-3 border-b sticky-item-description sticky-item-description-head">
+                          Item Description
+                        </th>
                         <th className="px-4 py-3 border-b">UOM</th>
                         <th className="px-4 py-3 border-b">Total QTY</th>
                         <th className="px-4 py-3 border-b">Submitted By</th>
@@ -1718,7 +1797,9 @@ export default function PurchasePage() {
                         </th>
                         <th className="px-4 py-3 border-b">Indent Number</th>
                         <th className="px-4 py-3 border-b">Item Number</th>
-                        <th className="px-4 py-3 border-b">Item Description</th>
+                        <th className="px-4 py-3 border-b sticky-item-description sticky-item-description-head">
+                          Item Description
+                        </th>
                         <th className="px-4 py-3 border-b">UOM</th>
                         <th className="px-4 py-3 border-b">Total Quantity</th>
                         <th className="px-4 py-3 border-b">Submitted By</th>
@@ -2380,7 +2461,7 @@ export default function PurchasePage() {
                                 <td className="px-4 py-2 border-b">
                                   {row.itemNumber}
                                 </td>
-                                <td className="px-4 py-2 border-b">
+                                <td className="px-4 py-2 border-b sticky-item-description">
                                   {row.itemDescription}
                                 </td>
                                 <td className="px-4 py-2 border-b">
@@ -2438,13 +2519,13 @@ export default function PurchasePage() {
                                   <input
                                     type="number"
                                     className="border p-1 rounded"
-                                    value={row.storeReceivedQuantity ?? 0}
+                                    value={row.storeReceivedQuantity ?? ""}
                                     disabled={!canEditReceivedAndInvoice}
                                     onChange={(e) =>
                                       handleFieldChange(
                                         row._id,
                                         "storeReceivedQuantity",
-                                        Number(e.target.value),
+                                        parseOptionalNumber(e.target.value),
                                       )
                                     }
                                   />
@@ -2533,13 +2614,13 @@ export default function PurchasePage() {
                                   <input
                                     type="number"
                                     className="border p-1 rounded"
-                                    value={row.storePrice ?? 0}
+                                    value={row.storePrice ?? ""}
                                     disabled={!canEditStoreFields}
                                     onChange={(e) =>
                                       handleFieldChange(
                                         row._id,
                                         "storePrice",
-                                        Number(e.target.value),
+                                        parseOptionalNumber(e.target.value),
                                       )
                                     }
                                   />
@@ -2551,13 +2632,13 @@ export default function PurchasePage() {
                                       <input
                                         type="number"
                                         className="border p-1 rounded"
-                                        value={row.storeBoxNumber ?? 0}
+                                        value={row.storeBoxNumber ?? ""}
                                         disabled={!canEditStoreFields}
                                         onChange={(e) =>
                                           handleFieldChange(
                                             row._id,
                                             "storeBoxNumber",
-                                            Number(e.target.value),
+                                            parseOptionalNumber(e.target.value),
                                           )
                                         }
                                       />
@@ -2601,13 +2682,13 @@ export default function PurchasePage() {
                                       <input
                                         type="number"
                                         className="border p-1 rounded"
-                                        value={row.storeDispatchBoxNumber ?? 0}
+                                        value={row.storeDispatchBoxNumber ?? ""}
                                         disabled={!canEditStoreFields}
                                         onChange={(e) =>
                                           handleFieldChange(
                                             row._id,
                                             "storeDispatchBoxNumber",
-                                            Number(e.target.value),
+                                            parseOptionalNumber(e.target.value),
                                           )
                                         }
                                       />
@@ -2795,7 +2876,7 @@ export default function PurchasePage() {
                           </td>
 
                           {/* ITEM DESCRIPTION */}
-                          <td className="px-4 py-2 border-b">
+                          <td className="px-4 py-2 border-b sticky-item-description">
                             {isDefaultEditable ? (
                               <input
                                 type="text"
@@ -3554,16 +3635,16 @@ export default function PurchasePage() {
                                   <div className="mt-1">
                                     <select
                                       className="border p-1 rounded w-full"
-                                      value={row.papwDays ?? 0}
+                                      value={row.papwDays ?? ""}
                                       onChange={(e) =>
                                         handleFieldChange(
                                           row._id,
                                           "papwDays",
-                                          Number(e.target.value),
+                                          parseOptionalNumber(e.target.value),
                                         )
                                       }
                                     >
-                                      <option value={0}>--PAPW Days--</option>
+                                      <option value="">--PAPW Days--</option>
                                       <option value={15}>15</option>
                                       <option value={30}>30</option>
                                       <option value={45}>45</option>
@@ -4364,17 +4445,19 @@ export default function PurchasePage() {
                                       <div className="mt-1">
                                         <select
                                           className="border p-1 rounded w-full"
-                                          value={row.papwDays ?? 0}
+                                          value={row.papwDays ?? ""}
                                           disabled={!canEdit}
                                           onChange={(e) =>
                                             handleFieldChange(
                                               row._id,
                                               "papwDays",
-                                              Number(e.target.value),
+                                              parseOptionalNumber(
+                                                e.target.value,
+                                              ),
                                             )
                                           }
                                         >
-                                          <option value={0}>
+                                          <option value="">
                                             --PAPW Days--
                                           </option>
                                           <option value={15}>15</option>
@@ -4691,7 +4774,7 @@ export default function PurchasePage() {
             <button
               onClick={handleSubmitUpdates}
               disabled={saving}
-              className={`mt-6 px-6 py-3 text-lg rounded-xl shadow-md transition ${
+              className={`mt-6 w-full sm:w-auto px-4 py-2 text-sm sm:px-6 sm:py-3 sm:text-lg rounded-xl shadow-md transition ${
                 saving
                   ? "bg-gray-400 text-gray-700 cursor-not-allowed"
                   : "bg-green-600 text-white hover:bg-green-700"
