@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 const API_BASE = (
   import.meta.env.VITE_API_URL || "https://backend-pms-three.vercel.app"
 ).replace(/\/+$/, "");
-const DEV_USERNAME = "Minmoy";
+const DEV_USERNAMES = ["minmoy", "mrinmoy"];
 
 export default function EditPasswordPage() {
   const navigate = useNavigate();
@@ -13,8 +13,8 @@ export default function EditPasswordPage() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const currentUser = localStorage.getItem("username") || "";
-  const isDeveloper = currentUser === DEV_USERNAME;
+  const currentUser = (localStorage.getItem("username") || "").trim();
+  const isDeveloper = DEV_USERNAMES.includes(currentUser.toLowerCase());
 
   const handleSubmit = async (e) => {
     e.preventDefault();

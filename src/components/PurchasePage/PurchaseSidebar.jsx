@@ -10,6 +10,13 @@ export default function PurchaseSidebar({
   onEditPassword,
   currentUsername,
 }) {
+  const normalizedCurrentUsername = String(currentUsername || "")
+    .trim()
+    .toLowerCase();
+  const isDeveloperUser =
+    normalizedCurrentUsername === "minmoy" ||
+    normalizedCurrentUsername === "mrinmoy";
+
   return (
     <aside className="purchase-sidebar hidden lg:flex lg:w-64 text-black p-6 lg:fixed lg:left-0 lg:top-[102px] lg:h-[calc(100vh-102px)] flex-col">
 
@@ -65,7 +72,7 @@ export default function PurchaseSidebar({
           </div>
         )}
 
-        {currentUsername === "Minmoy" && (
+        {isDeveloperUser && (
           <div className="mt-3">
             <button
               onClick={onEditPassword}

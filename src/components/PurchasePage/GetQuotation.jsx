@@ -42,7 +42,10 @@ import {
 } from "../../api/IndentForm.api";
 
 // ---------------------- ROLE FIRST ----------------------
-const getNavLinksByRole = (role) => {
+const getNavLinksByRole = (role, username) => {
+  const normalizedUsername = String(username || "").trim();
+  console.log("Generating nav links for role:", role, "username:", normalizedUsername);
+
   // Default full menu
   const fullMenu = {
     "Executive FMS Section": [
@@ -71,6 +74,13 @@ const getNavLinksByRole = (role) => {
         { name: "Material Received", icon: <FaTruck /> },
         { name: "Local Purchase", icon: <FaStore /> },
         { name: "Summary Report", icon: <FaClipboardList /> },
+      ],
+    };
+  } else if (role === "PC" && normalizedUsername === "Anindita Chakraborty") {
+    return {
+      "Executive FMS Section": [
+        { name: "PC Follow Up", icon: <FaPhoneAlt /> },
+        { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
       ],
     };
   } else if (role === "PA") {
@@ -127,10 +137,11 @@ const getNavLinksByRole = (role) => {
 
 export default function PurchasePage() {
   const navigate = useNavigate();
-  // --- Load role FIRST ---
-  const [role] = useState(localStorage.getItem("role") || "");
+  const role = localStorage.getItem("role") || "";
+  const username = localStorage.getItem("username") || "";
+  
   // --- Generate navLinks AFTER role is known ---
-  const navLinks = getNavLinksByRole(role);
+  const navLinks = getNavLinksByRole(role, username);
   const getDefaultOption = (role) => {
     if (role === "ADMIN") return "PMS Master Sheet";
     if (role === "PA") return "Get Quotation";

@@ -37,7 +37,8 @@ export default function LoginForm() {
     setIsSubmitting(true);
 
     try {
-      const success = await loginUser({ username, password });
+      const normalizedUsername = String(username || "").trim();
+      const success = await loginUser({ username: normalizedUsername, password });
 
       const allowedRoles = ["ADMIN", "InputUser", "DEO", "PSE", "PA", "PC", "Store", "PAC"];
 
@@ -46,7 +47,7 @@ export default function LoginForm() {
         setIsLoggedIn(true);
 
         localStorage.setItem("role", success);
-        localStorage.setItem("username", username);
+        localStorage.setItem("username", normalizedUsername);
       } else {
         setError("error");
       }
