@@ -15,6 +15,10 @@ export default function PurchaseFilterBar({
   setSelectedSite,
   selectedName,
   setSelectedName,
+  storeInFilter,
+  setStoreInFilter,
+  storeItemDescriptionFilter,
+  setStoreItemDescriptionFilter,
   date,
   setDate,
   startDate,
@@ -100,7 +104,11 @@ export default function PurchaseFilterBar({
           <option value="DateRange">Date Range</option>
           <option value="Name">Name</option>
           {selectedOption === "Store" && (
-            <option value="ManualClosed">Manual Closed</option>
+            <>
+              <option value="IN">I.N</option>
+              <option value="ItemDescription">Item Description</option>
+              <option value="ManualClosed">Manual Closed</option>
+            </>
           )}
         </select>
 
@@ -159,6 +167,26 @@ export default function PurchaseFilterBar({
             <option value="Local 2">Local Purchase 2</option>
             <option value="Local 3">Local Purchase 3</option>
           </select>
+        )}
+
+        {selectedOption === "Store" && findBy === "IN" && (
+          <input
+            type="text"
+            className="border p-1 rounded-lg text-xs min-w-[180px]"
+            value={storeInFilter}
+            onChange={(e) => setStoreInFilter(e.target.value)}
+            placeholder="Enter I.N"
+          />
+        )}
+
+        {selectedOption === "Store" && findBy === "ItemDescription" && (
+          <input
+            type="text"
+            className="border p-1 rounded-lg text-xs min-w-[220px]"
+            value={storeItemDescriptionFilter}
+            onChange={(e) => setStoreItemDescriptionFilter(e.target.value)}
+            placeholder="Enter Item Description"
+          />
         )}
       </div>
     </div>

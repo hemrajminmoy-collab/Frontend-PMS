@@ -46,13 +46,20 @@ import {
 const getNavLinksByRole = (role, username) => {
   const normalizedUsername = String(username || "").trim();
   const normalizedLowerUsername = normalizedUsername.toLowerCase();
-  const normalizedRole = String(role || "").trim().toUpperCase();
+  const normalizedRole = String(role || "")
+    .trim()
+    .toUpperCase();
   const isLogViewerUser =
     normalizedLowerUsername === "minmoy" ||
     normalizedLowerUsername === "mrinmoy" ||
     normalizedRole === "ADMIN";
 
-  console.log("Generating nav links for role:", role, "username:", normalizedUsername);
+  console.log(
+    "Generating nav links for role:",
+    role,
+    "username:",
+    normalizedUsername,
+  );
 
   let menu = {
     "Executive FMS Section": [
@@ -144,7 +151,10 @@ const getNavLinksByRole = (role, username) => {
     if (!links.some((link) => link.name === "System Logs")) {
       menu = {
         ...menu,
-        [sectionKey]: [...links, { name: "System Logs", icon: <FaClipboardList /> }],
+        [sectionKey]: [
+          ...links,
+          { name: "System Logs", icon: <FaClipboardList /> },
+        ],
       };
     }
   }
@@ -156,7 +166,7 @@ export default function PurchasePage() {
   const navigate = useNavigate();
   const role = localStorage.getItem("role") || "";
   const username = localStorage.getItem("username") || "";
-  
+
   // --- Generate navLinks AFTER role is known ---
   const navLinks = getNavLinksByRole(role, username);
   const getDefaultOption = (role) => {
@@ -232,6 +242,9 @@ export default function PurchasePage() {
   const [findBy, setFindBy] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
   const [selectedName, setSelectedName] = useState("");
+  const [storeInFilter, setStoreInFilter] = useState("");
+  const [storeItemDescriptionFilter, setStoreItemDescriptionFilter] =
+    useState("");
   const [date, setDate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -387,7 +400,8 @@ export default function PurchasePage() {
   ).replace(/\/+$/, "");
   const getClientSystemName = () => {
     if (typeof navigator === "undefined") return "";
-    const platform = navigator.userAgentData?.platform || navigator.platform || "Unknown";
+    const platform =
+      navigator.userAgentData?.platform || navigator.platform || "Unknown";
     const userAgent = navigator.userAgent || "";
     return `${platform} | ${userAgent}`.slice(0, 250);
   };
@@ -905,7 +919,6 @@ export default function PurchasePage() {
         return;
       }
 
-
       // ✅ Special: Manual-Closed items (Store only)
       if (selectedOption === "Store" && findBy === "ManualClosed") {
         const res = await axios.get(
@@ -957,6 +970,32 @@ export default function PurchasePage() {
         );
       }
 
+      // -------- STORE FILTER BY I.N --------
+      if (selectedOption === "Store" && findBy === "IN") {
+        const q = String(storeInFilter || "").trim().toLowerCase();
+        if (q) {
+          rows = rows.filter((item) =>
+            String(item.indentNumber || "")
+              .toLowerCase()
+              .includes(q),
+          );
+        }
+      }
+
+      // -------- STORE FILTER BY ITEM DESCRIPTION --------
+      if (selectedOption === "Store" && findBy === "ItemDescription") {
+        const q = String(storeItemDescriptionFilter || "")
+          .trim()
+          .toLowerCase();
+        if (q) {
+          rows = rows.filter((item) =>
+            String(item.itemDescription || "")
+              .toLowerCase()
+              .includes(q),
+          );
+        }
+      }
+
       setFilteredData(Array.isArray(rows) ? rows : []);
     } catch (error) {
       console.error("❌ Error fetching Purchase data:", error);
@@ -967,6 +1006,8 @@ export default function PurchasePage() {
     findBy,
     selectedSite,
     selectedName,
+    storeInFilter,
+    storeItemDescriptionFilter,
     date,
     startDate,
     endDate,
@@ -980,6 +1021,8 @@ export default function PurchasePage() {
     // reset filters when switching mode
     setSelectedSite("");
     setSelectedName("");
+    setStoreInFilter("");
+    setStoreItemDescriptionFilter("");
     setDate("");
     setStartDate("");
     setEndDate("");
@@ -1599,6 +1642,10 @@ export default function PurchasePage() {
               setSelectedSite={setSelectedSite}
               selectedName={selectedName}
               setSelectedName={setSelectedName}
+              storeInFilter={storeInFilter}
+              setStoreInFilter={setStoreInFilter}
+              storeItemDescriptionFilter={storeItemDescriptionFilter}
+              setStoreItemDescriptionFilter={setStoreItemDescriptionFilter}
               date={date}
               setDate={setDate}
               startDate={startDate}
@@ -1609,7 +1656,9 @@ export default function PurchasePage() {
           )}
 
           <div className="mb-8 p-4 bg-red-600 rounded-xl shadow-md text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">Purchase</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">
+              Purchase
+            </h1>
           </div>
 
           {selectedOption === "Summary Report" && (
@@ -1620,622 +1669,623 @@ export default function PurchasePage() {
             <SystemLogsSection username={username} />
           )}
 
-          {selectedOption !== "Summary Report" && selectedOption !== "System Logs" && (
-            <div className="w-full max-h-[65vh] sm:max-h-[70vh] overflow-auto rounded-xl border border-gray-200">
-              {selectedOption === "Store" && (
-                <StoreManualCloseSection
-                  manualCloseUniqueId={manualCloseUniqueId}
-                  setManualCloseUniqueId={setManualCloseUniqueId}
-                  handleFetchManualClose={handleFetchManualClose}
-                  manualCloseLoading={manualCloseLoading}
-                  manualCloseReason={manualCloseReason}
-                  setManualCloseReason={setManualCloseReason}
-                  handleManualClose={handleManualClose}
-                  manualCloseRecord={manualCloseRecord}
-                  manualCloseError={manualCloseError}
-                  manualCloseSuccess={manualCloseSuccess}
-                />
-              )}
+          {selectedOption !== "Summary Report" &&
+            selectedOption !== "System Logs" && (
+              <div className="w-full max-h-[65vh] sm:max-h-[70vh] overflow-auto rounded-xl border border-gray-200">
+                {selectedOption === "Store" && (
+                  <StoreManualCloseSection
+                    manualCloseUniqueId={manualCloseUniqueId}
+                    setManualCloseUniqueId={setManualCloseUniqueId}
+                    handleFetchManualClose={handleFetchManualClose}
+                    manualCloseLoading={manualCloseLoading}
+                    manualCloseReason={manualCloseReason}
+                    setManualCloseReason={setManualCloseReason}
+                    handleManualClose={handleManualClose}
+                    manualCloseRecord={manualCloseRecord}
+                    manualCloseError={manualCloseError}
+                    manualCloseSuccess={manualCloseSuccess}
+                  />
+                )}
 
-              {selectedOption === "Store" && (
-                <StoreBulkInvoiceSection
-                  renderedTableData={renderedTableData}
-                  setStoreSelectedRowIds={setStoreSelectedRowIds}
-                  clearStoreSelection={clearStoreSelection}
-                  storeSelectedRowIds={storeSelectedRowIds}
-                  storeBulkInvoiceNumber={storeBulkInvoiceNumber}
-                  setStoreBulkInvoiceNumber={setStoreBulkInvoiceNumber}
-                  storeBulkInvoiceDate={storeBulkInvoiceDate}
-                  setStoreBulkInvoiceDate={setStoreBulkInvoiceDate}
-                  storeBulkReceivedDate={storeBulkReceivedDate}
-                  setStoreBulkReceivedDate={setStoreBulkReceivedDate}
-                  storeBulkFileKey={storeBulkFileKey}
-                  setStoreBulkFile={setStoreBulkFile}
-                  handleStoreBulkInvoiceUpload={handleStoreBulkInvoiceUpload}
-                  storeBulkUploading={storeBulkUploading}
-                  storeBulkError={storeBulkError}
-                  storeBulkSuccess={storeBulkSuccess}
-                />
-              )}
+                {selectedOption === "Store" && (
+                  <StoreBulkInvoiceSection
+                    renderedTableData={renderedTableData}
+                    setStoreSelectedRowIds={setStoreSelectedRowIds}
+                    clearStoreSelection={clearStoreSelection}
+                    storeSelectedRowIds={storeSelectedRowIds}
+                    storeBulkInvoiceNumber={storeBulkInvoiceNumber}
+                    setStoreBulkInvoiceNumber={setStoreBulkInvoiceNumber}
+                    storeBulkInvoiceDate={storeBulkInvoiceDate}
+                    setStoreBulkInvoiceDate={setStoreBulkInvoiceDate}
+                    storeBulkReceivedDate={storeBulkReceivedDate}
+                    setStoreBulkReceivedDate={setStoreBulkReceivedDate}
+                    storeBulkFileKey={storeBulkFileKey}
+                    setStoreBulkFile={setStoreBulkFile}
+                    handleStoreBulkInvoiceUpload={handleStoreBulkInvoiceUpload}
+                    storeBulkUploading={storeBulkUploading}
+                    storeBulkError={storeBulkError}
+                    storeBulkSuccess={storeBulkSuccess}
+                  />
+                )}
 
-              {selectedOption === "PO Generation" && (
-                <PoBulkSection
-                  poSelectedRowIds={poSelectedRowIds}
-                  poBulkPoNumber={poBulkPoNumber}
-                  setPoBulkPoNumber={setPoBulkPoNumber}
-                  poBulkPoDate={poBulkPoDate}
-                  setPoBulkPoDate={setPoBulkPoDate}
-                  poBulkVendorName={poBulkVendorName}
-                  setPoBulkVendorName={setPoBulkVendorName}
-                  poBulkLeadDays={poBulkLeadDays}
-                  setPoBulkLeadDays={setPoBulkLeadDays}
-                  poBulkPaymentCondition={poBulkPaymentCondition}
-                  setPoBulkPaymentCondition={setPoBulkPaymentCondition}
-                  poBulkAmount={poBulkAmount}
-                  setPoBulkAmount={setPoBulkAmount}
-                  poBulkPapwDays={poBulkPapwDays}
-                  setPoBulkPapwDays={setPoBulkPapwDays}
-                  poBulkFileKey={poBulkFileKey}
-                  setPoBulkFile={setPoBulkFile}
-                  handlePoBulkUpload={handlePoBulkUpload}
-                  poBulkUploading={poBulkUploading}
-                  clearPoSelection={clearPoSelection}
-                  setPoBulkError={setPoBulkError}
-                  setPoBulkSuccess={setPoBulkSuccess}
-                  poBulkError={poBulkError}
-                  poBulkSuccess={poBulkSuccess}
-                />
-              )}
+                {selectedOption === "PO Generation" && (
+                  <PoBulkSection
+                    poSelectedRowIds={poSelectedRowIds}
+                    poBulkPoNumber={poBulkPoNumber}
+                    setPoBulkPoNumber={setPoBulkPoNumber}
+                    poBulkPoDate={poBulkPoDate}
+                    setPoBulkPoDate={setPoBulkPoDate}
+                    poBulkVendorName={poBulkVendorName}
+                    setPoBulkVendorName={setPoBulkVendorName}
+                    poBulkLeadDays={poBulkLeadDays}
+                    setPoBulkLeadDays={setPoBulkLeadDays}
+                    poBulkPaymentCondition={poBulkPaymentCondition}
+                    setPoBulkPaymentCondition={setPoBulkPaymentCondition}
+                    poBulkAmount={poBulkAmount}
+                    setPoBulkAmount={setPoBulkAmount}
+                    poBulkPapwDays={poBulkPapwDays}
+                    setPoBulkPapwDays={setPoBulkPapwDays}
+                    poBulkFileKey={poBulkFileKey}
+                    setPoBulkFile={setPoBulkFile}
+                    handlePoBulkUpload={handlePoBulkUpload}
+                    poBulkUploading={poBulkUploading}
+                    clearPoSelection={clearPoSelection}
+                    setPoBulkError={setPoBulkError}
+                    setPoBulkSuccess={setPoBulkSuccess}
+                    poBulkError={poBulkError}
+                    poBulkSuccess={poBulkSuccess}
+                  />
+                )}
 
-              {/* ------------------ Local Purchase Bulk Update (Invoice Date / Vendor / Remarks) ------------------ */}
-              {selectedOption === "Local Purchase" && (
-                <LocalPurchaseBulkSection
-                  selectAllLpRows={selectAllLpRows}
-                  renderedTableData={renderedTableData}
-                  clearLpSelection={clearLpSelection}
-                  lpBulkInvoiceDate={lpBulkInvoiceDate}
-                  setLpBulkInvoiceDate={setLpBulkInvoiceDate}
-                  lpBulkInvoiceNumber={lpBulkInvoiceNumber}
-                  setLpBulkInvoiceNumber={setLpBulkInvoiceNumber}
-                  lpBulkVendorName={lpBulkVendorName}
-                  setLpBulkVendorName={setLpBulkVendorName}
-                  lpBulkModeOfTransport={lpBulkModeOfTransport}
-                  setLpBulkModeOfTransport={setLpBulkModeOfTransport}
-                  lpBulkTransporterName={lpBulkTransporterName}
-                  setLpBulkTransporterName={setLpBulkTransporterName}
-                  lpBulkRemarks={lpBulkRemarks}
-                  setLpBulkRemarks={setLpBulkRemarks}
-                  handleLocalPurchaseBulkApply={handleLocalPurchaseBulkApply}
-                  lpBulkUploading={lpBulkUploading}
-                  lpSelectedRowIds={lpSelectedRowIds}
-                  lpBulkError={lpBulkError}
-                  lpBulkSuccess={lpBulkSuccess}
-                />
-              )}
+                {/* ------------------ Local Purchase Bulk Update (Invoice Date / Vendor / Remarks) ------------------ */}
+                {selectedOption === "Local Purchase" && (
+                  <LocalPurchaseBulkSection
+                    selectAllLpRows={selectAllLpRows}
+                    renderedTableData={renderedTableData}
+                    clearLpSelection={clearLpSelection}
+                    lpBulkInvoiceDate={lpBulkInvoiceDate}
+                    setLpBulkInvoiceDate={setLpBulkInvoiceDate}
+                    lpBulkInvoiceNumber={lpBulkInvoiceNumber}
+                    setLpBulkInvoiceNumber={setLpBulkInvoiceNumber}
+                    lpBulkVendorName={lpBulkVendorName}
+                    setLpBulkVendorName={setLpBulkVendorName}
+                    lpBulkModeOfTransport={lpBulkModeOfTransport}
+                    setLpBulkModeOfTransport={setLpBulkModeOfTransport}
+                    lpBulkTransporterName={lpBulkTransporterName}
+                    setLpBulkTransporterName={setLpBulkTransporterName}
+                    lpBulkRemarks={lpBulkRemarks}
+                    setLpBulkRemarks={setLpBulkRemarks}
+                    handleLocalPurchaseBulkApply={handleLocalPurchaseBulkApply}
+                    lpBulkUploading={lpBulkUploading}
+                    lpSelectedRowIds={lpSelectedRowIds}
+                    lpBulkError={lpBulkError}
+                    lpBulkSuccess={lpBulkSuccess}
+                  />
+                )}
 
-              <table className="min-w-max border border-gray-200 rounded-xl whitespace-nowrap text-xs">
-                <thead className="bg-gray-200 rounded-t-xl sticky top-0 z-20">
-                  <tr className="text-sm">
-                    {/* ------------------------- COMPARISON STATEMENT ------------------------- */}
-                    {selectedOption === "Comparison Statement" ? (
-                      <>
-                        <th className="px-4 py-3 border-b w-[130px] text-left">
-                          Date
-                        </th>
-
-                        <th className="px-4 py-3 border-b w-[140px] text-left">
-                          Unique ID
-                        </th>
-
-                        <th className="px-4 py-3 border-b w-[160px] text-center text-red-700">
-                          Upload PDF
-                        </th>
-
-                        <th className="px-4 py-3 border-b w-[130px] text-center text-red-700">
-                          Show PDF
-                        </th>
-
-                        {/* PA sees Upload Status */}
-                        {role === "PA" && (
-                          <th className="px-4 py-3 border-b w-[150px] text-center text-red-700">
-                            Upload Status
+                <table className="min-w-max border border-gray-200 rounded-xl whitespace-nowrap text-xs">
+                  <thead className="bg-gray-200 rounded-t-xl sticky top-0 z-20">
+                    <tr className="text-sm">
+                      {/* ------------------------- COMPARISON STATEMENT ------------------------- */}
+                      {selectedOption === "Comparison Statement" ? (
+                        <>
+                          <th className="px-4 py-3 border-b w-[130px] text-left">
+                            Date
                           </th>
-                        )}
 
-                        {/* PSE sees Review Status */}
-                        {role === "PSE" && (
-                          <th className="px-4 py-3 border-b w-[150px] text-center text-red-700">
-                            Review Status
+                          <th className="px-4 py-3 border-b w-[140px] text-left">
+                            Unique ID
                           </th>
-                        )}
-                      </>
-                    ) : selectedOption === "Store" ? (
-                      <>
-                        {/* ✅ SELECT COLUMN */}
-                        <th className="px-4 py-3 border-b text-center w-[50px]">
-                          Select
-                        </th>
-                        {/* ------------------------- STORE COLUMNS ------------------------- */}
-                        <th className="px-4 py-3 border-b">Date</th>
-                        <th className="px-4 py-3 border-b">Site</th>
-                        <th className="px-4 py-3 border-b">Unique Id</th>
-                        <th className="px-4 py-3 border-b">I.N</th>
-                        <th className="px-4 py-3 border-b">Item No</th>
-                        <th className="px-4 py-3 border-b sticky-item-description sticky-item-description-head">
-                          Item Description
-                        </th>
-                        <th className="px-4 py-3 border-b">UOM</th>
-                        <th className="px-4 py-3 border-b">Total QTY</th>
-                        <th className="px-4 py-3 border-b">Submitted By</th>
-                        <th className="px-4 py-3 border-b">SECTION</th>
-                        <th className="px-4 py-3 border-b">VENDOR NAME</th>
 
-                        {/* Store fields */}
-                        <th className="px-4 py-3 border-b text-red-700">
-                          Status
-                        </th>
-                        <th className="px-4 py-3 border-b text-red-700">
-                          Received Date
-                        </th>
-                        <th className="px-4 py-3 border-b text-red-700">
-                          Received Quantity
-                        </th>
-                        <th className="px-4 py-3 border-b text-red-700">
-                          Balance Quantity
-                        </th>
-                        <th className="px-4 py-3 border-b text-red-700">
-                          Invoice Number
-                        </th>
-                        <th className="px-4 py-3 border-b text-red-700">
-                          Invoice Date
-                        </th>
-                        <th className="px-4 py-3 border-b text-red-700 whitespace-nowrap">
-                          Upload Invoice
-                        </th>
-                        <th className="px-4 py-3 border-b text-red-700 whitespace-nowrap">
-                          Show Invoice
-                        </th>
-                        <th className="px-4 py-3 border-b text-red-700 whitespace-nowrap">
-                          Price
-                        </th>
-
-                        {/* Show dispatch + nigeria fields only for SUNAGROW / RICE FIELD selection */}
-                        {(() => {
-                          const siteKey = (selectedSite || "").toUpperCase();
-                          const showAll =
-                            siteKey === "SUNAGROW" ||
-                            siteKey === "RICE FIELD" ||
-                            siteKey === "";
-                          return showAll;
-                        })() && (
-                          <>
-                            <th className="px-4 py-3 border-b text-red-700 whitespace-nowrap">
-                              Store Box Number
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Mode Of Dispatch
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Dispatch Document Number
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Dispatch Box Number
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Dispatch Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Received Date In Nigeria
-                            </th>
-                          </>
-                        )}
-
-                        <th className="px-4 py-3 border-b text-red-700">
-                          Remarks (Store)
-                        </th>
-
-                        {(() => {
-                          const siteKey = (selectedSite || "").toUpperCase();
-                          const showAll =
-                            siteKey === "SUNAGROW" ||
-                            siteKey === "RICE FIELD" ||
-                            siteKey === "";
-                          return showAll;
-                        })() && (
-                          <th className="px-4 py-3 border-b text-red-700">
-                            Remarks (Nigeria)
+                          <th className="px-4 py-3 border-b w-[160px] text-center text-red-700">
+                            Upload PDF
                           </th>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {/* ------------------------- DEFAULT COLUMNS ------------------------- */}
-                        {selectedOption === "Store" && (
-                          <th className="px-4 py-3 border-b text-red-700">
+
+                          <th className="px-4 py-3 border-b w-[130px] text-center text-red-700">
+                            Show PDF
+                          </th>
+
+                          {/* PA sees Upload Status */}
+                          {role === "PA" && (
+                            <th className="px-4 py-3 border-b w-[150px] text-center text-red-700">
+                              Upload Status
+                            </th>
+                          )}
+
+                          {/* PSE sees Review Status */}
+                          {role === "PSE" && (
+                            <th className="px-4 py-3 border-b w-[150px] text-center text-red-700">
+                              Review Status
+                            </th>
+                          )}
+                        </>
+                      ) : selectedOption === "Store" ? (
+                        <>
+                          {/* ✅ SELECT COLUMN */}
+                          <th className="px-4 py-3 border-b text-center w-[50px]">
                             Select
                           </th>
-                        )}
-                        <th className="px-4 py-3 border-b">Date</th>
-                        <th className="px-4 py-3 border-b">Site</th>
-                        <th className="px-4 py-3 border-b">
-                          {selectedOption === "Local Purchase"
-                            ? "Unique ID (Same as Indent)"
-                            : "Unique ID"}
-                        </th>
-                        <th className="px-4 py-3 border-b">Indent Number</th>
-                        <th className="px-4 py-3 border-b">Item Number</th>
-                        <th className="px-4 py-3 border-b sticky-item-description sticky-item-description-head">
-                          Item Description
-                        </th>
-                        <th className="px-4 py-3 border-b">UOM</th>
-                        <th className="px-4 py-3 border-b">Total Quantity</th>
-                        <th className="px-4 py-3 border-b">Submitted By</th>
-                        <th className="px-4 py-3 border-b">Section</th>
-                        <th className="px-4 py-3 border-b text-red-700">
-                          Doer Name
-                        </th>
+                          {/* ------------------------- STORE COLUMNS ------------------------- */}
+                          <th className="px-4 py-3 border-b">Date</th>
+                          <th className="px-4 py-3 border-b">Site</th>
+                          <th className="px-4 py-3 border-b">Unique Id</th>
+                          <th className="px-4 py-3 border-b">I.N</th>
+                          <th className="px-4 py-3 border-b">Item No</th>
+                          <th className="px-4 py-3 border-b sticky-item-description sticky-item-description-head">
+                            Item Description
+                          </th>
+                          <th className="px-4 py-3 border-b">UOM</th>
+                          <th className="px-4 py-3 border-b">Total QTY</th>
+                          <th className="px-4 py-3 border-b">Submitted By</th>
+                          <th className="px-4 py-3 border-b">SECTION</th>
+                          <th className="px-4 py-3 border-b">VENDOR NAME</th>
 
-                        {/* ------------------------- CONDITIONAL HEADERS ------------------------- */}
-                        {selectedOption === "PMS Master Sheet" && (
-                          <>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Planned Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Actual Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Send for Get Quotation
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Doer Status
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Time Delay
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Remarks
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Planned Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Actual Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Technical Approval Status
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Time Delay
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Approver Name
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Remarks
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Planned Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Actual Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Finalize Terms Status
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Time Delay
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Get Approval
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Approver Name
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Remarks
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Planned Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Actual Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              PO Generation Status
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Time Delay
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              PO Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              PO Number
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Upload PO
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Show PO
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Vendor Name
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Lead Days
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Amount
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Application Area
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Old Material Status
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Order Approved By
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Payment Condition
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Remarks
-                            </th>
-                          </>
-                        )}
+                          {/* Store fields */}
+                          <th className="px-4 py-3 border-b text-red-700">
+                            Status
+                          </th>
+                          <th className="px-4 py-3 border-b text-red-700">
+                            Received Date
+                          </th>
+                          <th className="px-4 py-3 border-b text-red-700">
+                            Received Quantity
+                          </th>
+                          <th className="px-4 py-3 border-b text-red-700">
+                            Balance Quantity
+                          </th>
+                          <th className="px-4 py-3 border-b text-red-700">
+                            Invoice Number
+                          </th>
+                          <th className="px-4 py-3 border-b text-red-700">
+                            Invoice Date
+                          </th>
+                          <th className="px-4 py-3 border-b text-red-700 whitespace-nowrap">
+                            Upload Invoice
+                          </th>
+                          <th className="px-4 py-3 border-b text-red-700 whitespace-nowrap">
+                            Show Invoice
+                          </th>
+                          <th className="px-4 py-3 border-b text-red-700 whitespace-nowrap">
+                            Price
+                          </th>
 
-                        {selectedOption === "Indent Verification" && (
-                          <>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Remarks
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Application Area
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Old Material Status
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Order Approved By
-                            </th>
-                          </>
-                        )}
+                          {/* Show dispatch + nigeria fields only for SUNAGROW / RICE FIELD selection */}
+                          {(() => {
+                            const siteKey = (selectedSite || "").toUpperCase();
+                            const showAll =
+                              siteKey === "SUNAGROW" ||
+                              siteKey === "RICE FIELD" ||
+                              siteKey === "";
+                            return showAll;
+                          })() && (
+                            <>
+                              <th className="px-4 py-3 border-b text-red-700 whitespace-nowrap">
+                                Store Box Number
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Mode Of Dispatch
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Dispatch Document Number
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Dispatch Box Number
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Dispatch Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Received Date In Nigeria
+                              </th>
+                            </>
+                          )}
 
-                        {selectedOption === "Get Quotation" && (
-                          <>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Planned Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Actual Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Send for Get Quotation
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Doer Status
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Time Delay
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Remarks
-                            </th>
-                            <th className="px-4 py-2 border-b">Upload PDF</th>
-                            <th className="px-4 py-2 border-b">Show PDF</th>
-                          </>
-                        )}
+                          <th className="px-4 py-3 border-b text-red-700">
+                            Remarks (Store)
+                          </th>
 
-                        {selectedOption === "Technical Approval" && (
-                          <>
+                          {(() => {
+                            const siteKey = (selectedSite || "").toUpperCase();
+                            const showAll =
+                              siteKey === "SUNAGROW" ||
+                              siteKey === "RICE FIELD" ||
+                              siteKey === "";
+                            return showAll;
+                          })() && (
                             <th className="px-4 py-3 border-b text-red-700">
-                              Planned Date
+                              Remarks (Nigeria)
                             </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Actual Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Technical Approval Status
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Time Delay
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Approver Name
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Remarks
-                            </th>
-                          </>
-                        )}
-
-                        {selectedOption === "Commercial Negotiation" && (
-                          <>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Planned Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Actual Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Finalize Terms Status
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Time Delay
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Get Approval
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Approver Name
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Remarks
-                            </th>
-                          </>
-                        )}
-
-                        {selectedOption === "PO Generation" && (
-                          <>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {/* ------------------------- DEFAULT COLUMNS ------------------------- */}
+                          {selectedOption === "Store" && (
                             <th className="px-4 py-3 border-b text-red-700">
                               Select
                             </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Planned Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Actual Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              PO Generation Status
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Time Delay
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              PO Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              PO Number
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Upload PO
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Show PO
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Vendor Name
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Lead Days
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Amount
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Payment Condition
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Remarks
-                            </th>
-                          </>
-                        )}
+                          )}
+                          <th className="px-4 py-3 border-b">Date</th>
+                          <th className="px-4 py-3 border-b">Site</th>
+                          <th className="px-4 py-3 border-b">
+                            {selectedOption === "Local Purchase"
+                              ? "Unique ID (Same as Indent)"
+                              : "Unique ID"}
+                          </th>
+                          <th className="px-4 py-3 border-b">Indent Number</th>
+                          <th className="px-4 py-3 border-b">Item Number</th>
+                          <th className="px-4 py-3 border-b sticky-item-description sticky-item-description-head">
+                            Item Description
+                          </th>
+                          <th className="px-4 py-3 border-b">UOM</th>
+                          <th className="px-4 py-3 border-b">Total Quantity</th>
+                          <th className="px-4 py-3 border-b">Submitted By</th>
+                          <th className="px-4 py-3 border-b">Section</th>
+                          <th className="px-4 py-3 border-b text-red-700">
+                            Doer Name
+                          </th>
 
-                        {selectedOption === "Local Purchase" && (
-                          <>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Select
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Invoice Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Invoice Number
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Vendor Name
-                            </th>
-                            {/*<th className="px-4 py-3 border-b text-red-700">Application Area</th>
+                          {/* ------------------------- CONDITIONAL HEADERS ------------------------- */}
+                          {selectedOption === "PMS Master Sheet" && (
+                            <>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Planned Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Actual Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Send for Get Quotation
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Doer Status
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Time Delay
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Remarks
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Planned Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Actual Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Technical Approval Status
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Time Delay
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Approver Name
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Remarks
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Planned Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Actual Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Finalize Terms Status
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Time Delay
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Get Approval
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Approver Name
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Remarks
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Planned Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Actual Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                PO Generation Status
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Time Delay
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                PO Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                PO Number
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Upload PO
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Show PO
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Vendor Name
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Lead Days
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Amount
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Application Area
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Old Material Status
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Order Approved By
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Payment Condition
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Remarks
+                              </th>
+                            </>
+                          )}
+
+                          {selectedOption === "Indent Verification" && (
+                            <>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Remarks
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Application Area
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Old Material Status
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Order Approved By
+                              </th>
+                            </>
+                          )}
+
+                          {selectedOption === "Get Quotation" && (
+                            <>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Planned Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Actual Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Send for Get Quotation
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Doer Status
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Time Delay
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Remarks
+                              </th>
+                              <th className="px-4 py-2 border-b">Upload PDF</th>
+                              <th className="px-4 py-2 border-b">Show PDF</th>
+                            </>
+                          )}
+
+                          {selectedOption === "Technical Approval" && (
+                            <>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Planned Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Actual Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Technical Approval Status
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Time Delay
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Approver Name
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Remarks
+                              </th>
+                            </>
+                          )}
+
+                          {selectedOption === "Commercial Negotiation" && (
+                            <>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Planned Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Actual Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Finalize Terms Status
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Time Delay
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Get Approval
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Approver Name
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Remarks
+                              </th>
+                            </>
+                          )}
+
+                          {selectedOption === "PO Generation" && (
+                            <>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Select
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Planned Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Actual Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                PO Generation Status
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Time Delay
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                PO Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                PO Number
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Upload PO
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Show PO
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Vendor Name
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Lead Days
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Amount
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Payment Condition
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Remarks
+                              </th>
+                            </>
+                          )}
+
+                          {selectedOption === "Local Purchase" && (
+                            <>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Select
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Invoice Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Invoice Number
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Vendor Name
+                              </th>
+                              {/*<th className="px-4 py-3 border-b text-red-700">Application Area</th>
                           <th className="px-4 py-3 border-b text-red-700">Old Material Status</th>
                           <th className="px-4 py-3 border-b text-red-700">Order Approved By</th>
                           <th className="px-4 py-3 border-b text-red-700">Local Purchase Image</th>*/}
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Mode of Transport
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Transporter Name
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Remarks
-                            </th>
-                          </>
-                        )}
-
-                        {(selectedOption === "PC Follow Up" ||
-                          selectedOption === "Payment Follow Up") && (
-                          <>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              PO Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              PO Number
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Upload PO
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Show PO
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Vendor Name
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Lead Days
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Payment Condition
-                            </th>
-
-                            {/* Extra column only for Payment Follow Up */}
-                            {selectedOption === "Payment Follow Up" && (
                               <th className="px-4 py-3 border-b text-red-700">
-                                Transaction Number
+                                Mode of Transport
                               </th>
-                            )}
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Transporter Name
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Remarks
+                              </th>
+                            </>
+                          )}
 
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Planned Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Actual Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Follow Up Status
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Time Delay
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Remarks
-                            </th>
-                          </>
-                        )}
+                          {(selectedOption === "PC Follow Up" ||
+                            selectedOption === "Payment Follow Up") && (
+                            <>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                PO Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                PO Number
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Upload PO
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Show PO
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Vendor Name
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Lead Days
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Payment Condition
+                              </th>
 
-                        {selectedOption === "Material Received" && (
-                          <>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Planned Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Actual Date
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Time Delay
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Material Received Date (PSE)
-                            </th>
-                            <th className="px-4 py-3 border-b text-red-700">
-                              Store Received Date
-                            </th>
-                          </>
-                        )}
-                      </>
-                    )}
-                  </tr>
-                </thead>
+                              {/* Extra column only for Payment Follow Up */}
+                              {selectedOption === "Payment Follow Up" && (
+                                <th className="px-4 py-3 border-b text-red-700">
+                                  Transaction Number
+                                </th>
+                              )}
 
-                <tbody>
-                  {finalTableData.map((row, index) => (
-                    <React.Fragment key={row._id || index}>
-                      {selectedOption === "Comparison Statement" ? (
-                        /* ------------- ONLY FOR COMPARISON STATEMENT ------------- */
-                        <tr
-                          key={row._id || index}
-                          className={`
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Planned Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Actual Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Follow Up Status
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Time Delay
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Remarks
+                              </th>
+                            </>
+                          )}
+
+                          {selectedOption === "Material Received" && (
+                            <>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Planned Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Actual Date
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Time Delay
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Material Received Date (PSE)
+                              </th>
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Store Received Date
+                              </th>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {finalTableData.map((row, index) => (
+                      <React.Fragment key={row._id || index}>
+                        {selectedOption === "Comparison Statement" ? (
+                          /* ------------- ONLY FOR COMPARISON STATEMENT ------------- */
+                          <tr
+                            key={row._id || index}
+                            className={`
       h-4 transition
       ${
         row.comparisonStatementStatus === "Reopen"
@@ -2245,1026 +2295,160 @@ export default function PurchasePage() {
           : "bg-white hover:bg-red-50"
       }
     `}
-                        >
-                          {/* Date */}
-                          <td className="px-4 py-0 border-b w-[130px] text-left">
-                            {row.date}
-                          </td>
-
-                          {/* Unique ID */}
-                          <td className="px-4 py-0 border-b w-[140px] text-left">
-                            {row.uniqueId}
-                          </td>
-
-                          {/* Upload PDF */}
-                          <td className="px-4 py-1 border-b w-[160px]">
-                            {(() => {
-                              const isPA =
-                                localStorage.getItem("role") === "PA";
-                              const isDone =
-                                row.comparisonStatementStatus === "Done";
-                              const isReadOnly = isPA && isDone;
-
-                              // ✅ SINGLE SOURCE OF TRUTH (from Mongo)
-                              const savedDriveLink =
-                                row.comparisonStatementPdf || "";
-
-                              const localPreviewLink =
-                                pdfPreview[row._id] || "";
-
-                              return (
-                                <div className="flex items-center justify-center gap-2">
-                                  {/* Hidden File Input */}
-                                  <input
-                                    id={`pdfInput_${row._id}`}
-                                    type="file"
-                                    accept="application/pdf"
-                                    className="hidden"
-                                    disabled={isReadOnly}
-                                    onChange={(e) => {
-                                      if (isReadOnly) return;
-
-                                      const file = e.target.files?.[0];
-                                      if (!file) return;
-
-                                      const previewUrl =
-                                        URL.createObjectURL(file);
-
-                                      setPdfPreview((prev) => ({
-                                        ...prev,
-                                        [row._id]: previewUrl,
-                                      }));
-
-                                      setUploadedFiles((prev) => ({
-                                        ...prev,
-                                        [row._id]: file.name,
-                                      }));
-
-                                      handlePdfUpload(row._id, file);
-                                    }}
-                                  />
-                                  {/* Upload Button */}
-                                  <button
-                                    type="button"
-                                    disabled={isReadOnly}
-                                    onClick={() =>
-                                      !isReadOnly &&
-                                      document
-                                        .getElementById(`pdfInput_${row._id}`)
-                                        ?.click()
-                                    }
-                                    className={`flex items-center gap-2 px-3 py-0.5 rounded transition ${
-                                      isReadOnly
-                                        ? "bg-gray-400 cursor-not-allowed text-white"
-                                        : "bg-blue-600 hover:bg-blue-700 text-white"
-                                    }`}
-                                  >
-                                    <FaFileUpload /> Upload
-                                  </button>
-                                  {/* Local uploaded file (same session) */}
-                                  {uploadedFiles[row._id] &&
-                                    localPreviewLink && (
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          window.open(
-                                            localPreviewLink,
-                                            "_blank",
-                                          )
-                                        }
-                                        className="px-2 py-0.5 rounded font-medium transition"
-                                        style={{
-                                          backgroundColor: "#F5D038",
-                                          color: "#000",
-                                        }}
-                                        title="Open uploaded file"
-                                      >
-                                        {uploadedFiles[row._id]}
-                                      </button>
-                                    )}
-
-                                  {/* Already uploaded (from DB) */}
-                                  {savedDriveLink && (
-                                    <span className="text-xs text-green-700 font-semibold">
-                                      Uploaded
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })()}
-                          </td>
-
-                          {/* Show PDF */}
-                          <td className="px-4 py-1 border-b w-[130px] text-center">
-                            {(() => {
-                              const savedDriveLink =
-                                row.comparisonStatementPdf || "";
-                              const localPreviewLink =
-                                pdfPreview[row._id] || "";
-
-                              const showPdfLink =
-                                localPreviewLink || savedDriveLink;
-
-                              return (
-                                <button
-                                  type="button"
-                                  disabled={!showPdfLink}
-                                  onClick={() =>
-                                    showPdfLink &&
-                                    window.open(showPdfLink, "_blank")
-                                  }
-                                  className={`px-3 py-0.5 rounded font-medium transition ${
-                                    showPdfLink
-                                      ? "bg-yellow-400 hover:bg-yellow-500 text-black"
-                                      : "bg-gray-300 text-gray-600 cursor-not-allowed"
-                                  }`}
-                                >
-                                  Show PDF
-                                </button>
-                              );
-                            })()}
-                          </td>
-
-                          {/* Status column: PA -> Upload Status, PSE -> Review Status */}
-                          {role === "PA" && (
-                            <td className="px-4 py-1 border-b w-[150px] text-center">
-                              <select
-                                className="border p-1 rounded w-[120px]"
-                                value={row.comparisonStatementStatus ?? ""}
-                                disabled={
-                                  localStorage.getItem("role") === "PA" &&
-                                  row.comparisonStatementStatus === "Done"
-                                }
-                                onChange={(e) =>
-                                  handleFieldChange(
-                                    row._id,
-                                    "comparisonStatementStatus",
-                                    e.target.value,
-                                  )
-                                }
-                              >
-                                <option value="">--Select--</option>
-                                <option value="Hold">Hold</option>
-                                <option value="Cancelled">Cancelled</option>
-                                <option value="Done">Done</option>
-                                <option value="Reopen">Reopen</option>
-                              </select>
+                          >
+                            {/* Date */}
+                            <td className="px-4 py-0 border-b w-[130px] text-left">
+                              {row.date}
                             </td>
-                          )}
 
-                          {role === "PSE" && (
-                            <td className="px-4 py-1 border-b w-[150px] text-center">
-                              <select
-                                className="border p-1 rounded w-[120px]"
-                                value={row.comparisonStatementStatus ?? ""}
-                                onChange={(e) =>
-                                  handleFieldChange(
-                                    row._id,
-                                    "comparisonStatementStatus",
-                                    e.target.value,
-                                  )
-                                }
-                              >
-                                <option value="">--Select--</option>
-                                <option value="Hold">Hold</option>
-                                <option value="Cancelled">Cancelled</option>
-                                <option value="Done">Done</option>
-                                <option value="Reopen">Reopen</option>
-                              </select>
+                            {/* Unique ID */}
+                            <td className="px-4 py-0 border-b w-[140px] text-left">
+                              {row.uniqueId}
                             </td>
-                          )}
-                        </tr>
-                      ) : selectedOption === "Store" ? (
-                        /* ------------- STORE SECTION ------------- */
-                        <tr
-                          key={row._id || index}
-                          className={
-                            selectedOption === "Store" && row.storeManualClosed
-                              ? "bg-blue-100 border-l-4 border-blue-600 hover:bg-blue-200 transition"
-                              : selectedOption === "Material Received" &&
-                                isMaterialMismatch(row)
-                              ? "bg-red-200 hover:bg-red-300 transition"
-                              : `${
-                                  index % 2 === 0 ? "bg-gray-50" : "bg-white"
-                                } hover:bg-red-50 transition`
-                          }
-                        >
-                          {(() => {
-                            const currentRole =
-                              localStorage.getItem("role") || "";
-                            const currentUser =
-                              localStorage.getItem("username") || "";
-                            const isAdmin = currentRole === "ADMIN";
-                            const isStore = currentRole === "Store";
 
-                            const isNigeriaStoreUser =
-                              isStore && currentUser === "Store Person Nigeria";
-                            const isHiplStoreUser =
-                              isStore && currentUser === "Store Person HIPL";
+                            {/* Upload PDF */}
+                            <td className="px-4 py-1 border-b w-[160px]">
+                              {(() => {
+                                const isPA =
+                                  localStorage.getItem("role") === "PA";
+                                const isDone =
+                                  row.comparisonStatementStatus === "Done";
+                                const isReadOnly = isPA && isDone;
 
-                            const siteKey = (selectedSite || "").toUpperCase();
-                            const showAll =
-                              siteKey === "SUNAGROW" ||
-                              siteKey === "RICE FIELD" ||
-                              siteKey === "";
+                                // ✅ SINGLE SOURCE OF TRUTH (from Mongo)
+                                const savedDriveLink =
+                                  row.comparisonStatementPdf || "";
 
-                            // Balance is auto-calculated:
-                            // Balance Qty = Total Qty - Received Qty
-                            const totalQty = Number(row.totalQuantity ?? 0);
-                            const receivedQty = Math.max(
-                              0,
-                              Number(row.storeReceivedQuantity ?? 0),
-                            );
-                            const computedBalanceQty = Math.max(
-                              0,
-                              totalQty - receivedQty,
-                            );
+                                const localPreviewLink =
+                                  pdfPreview[row._id] || "";
 
-                            // If a row is manually closed, lock received/invoice edits to avoid accidental changes.
-                            const isStoreManuallyClosed = Boolean(
-                              row.storeManualClosed,
-                            );
+                                return (
+                                  <div className="flex items-center justify-center gap-2">
+                                    {/* Hidden File Input */}
+                                    <input
+                                      id={`pdfInput_${row._id}`}
+                                      type="file"
+                                      accept="application/pdf"
+                                      className="hidden"
+                                      disabled={isReadOnly}
+                                      onChange={(e) => {
+                                        if (isReadOnly) return;
 
-                            // Permissions:
-                            // - Admin: edit all store fields
-                            // - Store Person HIPL: can edit all Store (HIPL) fields (Status..Remarks)
-                            //   but can change Received Qty/Date + Invoice No/Date only while balance > 0.
-                            // - Store Person Nigeria: edit only Nigeria fields
-                            const canEditNigeriaFields =
-                              isAdmin || isNigeriaStoreUser;
-                            const canEditStoreFields =
-                              isAdmin || isHiplStoreUser;
-                            // ✅ Allow editing received qty/date even when balance is 0 (including excess receipt).
-                            // Only block edits after manual close.
-                            const canEditReceivedAndInvoice =
-                              (isAdmin || isHiplStoreUser) &&
-                              !isStoreManuallyClosed;
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
 
-                            return (
-                              <>
-                                {/* Base fields (from DB) */}
-                                <td className="px-4 py-2 border-b text-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={isStoreRowSelected(row._id)}
-                                    onChange={() =>
-                                      toggleStoreRowSelected(row._id)
-                                    }
-                                    disabled={!row._id || isStoreManuallyClosed}
-                                  />
-                                </td>
-                                <td className="px-4 py-2 border-b">
-                                  {row.date}
-                                </td>
-                                <td className="px-4 py-2 border-b">
-                                  {row.site}
-                                </td>
-                                <td className="px-4 py-2 border-b">
-                                  {row.uniqueId}
-                                </td>
-                                <td className="px-4 py-2 border-b">
-                                  {row.indentNumber}
-                                </td>
-                                <td className="px-4 py-2 border-b">
-                                  {row.itemNumber}
-                                </td>
-                                <td className="px-4 py-2 border-b sticky-item-description">
-                                  {row.itemDescription}
-                                </td>
-                                <td className="px-4 py-2 border-b">
-                                  {row.uom}
-                                </td>
-                                <td className="px-4 py-2 border-b">
-                                  {row.totalQuantity}
-                                </td>
-                                <td className="px-4 py-2 border-b">
-                                  {row.submittedBy}
-                                </td>
-                                <td className="px-4 py-2 border-b">
-                                  {row.section}
-                                </td>
-                                <td className="px-4 py-2 border-b">
-                                  {row.vendorName}
-                                </td>
+                                        const previewUrl =
+                                          URL.createObjectURL(file);
 
-                                {/* Store fields */}
-                                <td className="px-4 py-2 border-b">
-                                  <select
-                                    className="border p-1 rounded"
-                                    value={row.storeStatus ?? ""}
-                                    disabled={!canEditStoreFields}
-                                    onChange={(e) =>
-                                      handleFieldChange(
-                                        row._id,
-                                        "storeStatus",
-                                        e.target.value,
-                                      )
-                                    }
-                                  >
-                                    <option value="">--Select--</option>
-                                    <option value="Received">Received</option>
-                                  </select>
-                                </td>
+                                        setPdfPreview((prev) => ({
+                                          ...prev,
+                                          [row._id]: previewUrl,
+                                        }));
 
-                                <td className="px-4 py-2 border-b">
-                                  <input
-                                    type="date"
-                                    className="border p-1 rounded"
-                                    value={row.storeReceivedDate ?? ""}
-                                    disabled={!canEditReceivedAndInvoice}
-                                    onChange={(e) =>
-                                      handleFieldChange(
-                                        row._id,
-                                        "storeReceivedDate",
-                                        e.target.value,
-                                      )
-                                    }
-                                  />
-                                </td>
+                                        setUploadedFiles((prev) => ({
+                                          ...prev,
+                                          [row._id]: file.name,
+                                        }));
 
-                                <td className="px-4 py-2 border-b">
-                                  <input
-                                    type="number"
-                                    className="border p-1 rounded"
-                                    value={row.storeReceivedQuantity ?? ""}
-                                    disabled={!canEditReceivedAndInvoice}
-                                    onChange={(e) =>
-                                      handleFieldChange(
-                                        row._id,
-                                        "storeReceivedQuantity",
-                                        parseOptionalNumber(e.target.value),
-                                      )
-                                    }
-                                  />
-                                </td>
-
-                                <td className="px-4 py-2 border-b">
-                                  <input
-                                    type="number"
-                                    className="border p-1 rounded"
-                                    value={computedBalanceQty}
-                                    disabled={true}
-                                  />
-                                </td>
-
-                                <td className="px-4 py-2 border-b">
-                                  <textarea
-                                    rows={2}
-                                    className="border p-1 rounded w-full min-w-[180px]"
-                                    value={row.storeInvoiceNumber ?? ""}
-                                    disabled={!canEditReceivedAndInvoice}
-                                    onChange={(e) =>
-                                      handleFieldChange(
-                                        row._id,
-                                        "storeInvoiceNumber",
-                                        e.target.value,
-                                      )
-                                    }
-                                  />
-                                </td>
-
-                                <td className="px-4 py-2 border-b">
-                                  <input
-                                    type="date"
-                                    className="border p-1 rounded"
-                                    value={row.storeInvoiceDate ?? ""}
-                                    disabled={!canEditReceivedAndInvoice}
-                                    onChange={(e) =>
-                                      handleFieldChange(
-                                        row._id,
-                                        "storeInvoiceDate",
-                                        e.target.value,
-                                      )
-                                    }
-                                  />
-                                </td>
-
-                                <td className="px-4 py-2 border-b">
-                                  <input
-                                    type="file"
-                                    accept="application/pdf"
-                                    disabled={uploadingInvoiceRowId === row._id}
-                                    onChange={(e) => {
-                                      const f = e.target.files?.[0];
-                                      if (!f) return;
-                                      handleInvoiceUpload(row._id, f);
-                                      e.target.value = "";
-                                    }}
-                                  />
-                                </td>
-
-                                <td className="px-4 py-2 border-b">
-                                  {row.invoicePdfWebViewLink ? (
+                                        handlePdfUpload(row._id, file);
+                                      }}
+                                    />
+                                    {/* Upload Button */}
                                     <button
                                       type="button"
+                                      disabled={isReadOnly}
                                       onClick={() =>
-                                        window.open(
-                                          row.invoicePdfWebViewLink,
-                                          "_blank",
-                                        )
+                                        !isReadOnly &&
+                                        document
+                                          .getElementById(`pdfInput_${row._id}`)
+                                          ?.click()
                                       }
-                                      disabled={
-                                        uploadingInvoiceRowId === row._id
-                                      }
-                                      className="btn btn-sm btn-primary"
+                                      className={`flex items-center gap-2 px-3 py-0.5 rounded transition ${
+                                        isReadOnly
+                                          ? "bg-gray-400 cursor-not-allowed text-white"
+                                          : "bg-blue-600 hover:bg-blue-700 text-white"
+                                      }`}
                                     >
-                                      Show Invoice
+                                      <FaFileUpload /> Upload
                                     </button>
-                                  ) : (
-                                    <span style={{ color: "#888" }}>
-                                      No Invoice
-                                    </span>
-                                  )}
-                                </td>
+                                    {/* Local uploaded file (same session) */}
+                                    {uploadedFiles[row._id] &&
+                                      localPreviewLink && (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            window.open(
+                                              localPreviewLink,
+                                              "_blank",
+                                            )
+                                          }
+                                          className="px-2 py-0.5 rounded font-medium transition"
+                                          style={{
+                                            backgroundColor: "#F5D038",
+                                            color: "#000",
+                                          }}
+                                          title="Open uploaded file"
+                                        >
+                                          {uploadedFiles[row._id]}
+                                        </button>
+                                      )}
 
-                                <td className="px-4 py-2 border-b">
-                                  <input
-                                    type="number"
-                                    className="border p-1 rounded"
-                                    value={row.storePrice ?? ""}
-                                    disabled={!canEditStoreFields}
-                                    onChange={(e) =>
-                                      handleFieldChange(
-                                        row._id,
-                                        "storePrice",
-                                        parseOptionalNumber(e.target.value),
-                                      )
+                                    {/* Already uploaded (from DB) */}
+                                    {savedDriveLink && (
+                                      <span className="text-xs text-green-700 font-semibold">
+                                        Uploaded
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </td>
+
+                            {/* Show PDF */}
+                            <td className="px-4 py-1 border-b w-[130px] text-center">
+                              {(() => {
+                                const savedDriveLink =
+                                  row.comparisonStatementPdf || "";
+                                const localPreviewLink =
+                                  pdfPreview[row._id] || "";
+
+                                const showPdfLink =
+                                  localPreviewLink || savedDriveLink;
+
+                                return (
+                                  <button
+                                    type="button"
+                                    disabled={!showPdfLink}
+                                    onClick={() =>
+                                      showPdfLink &&
+                                      window.open(showPdfLink, "_blank")
                                     }
-                                  />
-                                </td>
+                                    className={`px-3 py-0.5 rounded font-medium transition ${
+                                      showPdfLink
+                                        ? "bg-yellow-400 hover:bg-yellow-500 text-black"
+                                        : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                                    }`}
+                                  >
+                                    Show PDF
+                                  </button>
+                                );
+                              })()}
+                            </td>
 
-                                {showAll && (
-                                  <>
-                                    <td className="px-4 py-2 border-b">
-                                      <input
-                                        type="number"
-                                        className="border p-1 rounded"
-                                        value={row.storeBoxNumber ?? ""}
-                                        disabled={!canEditStoreFields}
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "storeBoxNumber",
-                                            parseOptionalNumber(e.target.value),
-                                          )
-                                        }
-                                      />
-                                    </td>
-
-                                    <td className="px-4 py-2 border-b">
-                                      <textarea
-                                        rows={2}
-                                        className="border p-1 rounded w-full min-w-[180px]"
-                                        value={row.storeModeOfDispatch ?? ""}
-                                        disabled={!canEditStoreFields}
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "storeModeOfDispatch",
-                                            e.target.value,
-                                          )
-                                        }
-                                      />
-                                    </td>
-
-                                    <td className="px-4 py-2 border-b">
-                                      <textarea
-                                        rows={2}
-                                        className="border p-1 rounded w-full min-w-[180px]"
-                                        value={
-                                          row.storeDispatchDocumentNumber ?? ""
-                                        }
-                                        disabled={!canEditStoreFields}
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "storeDispatchDocumentNumber",
-                                            e.target.value,
-                                          )
-                                        }
-                                      />
-                                    </td>
-
-                                    <td className="px-4 py-2 border-b">
-                                      <input
-                                        type="number"
-                                        className="border p-1 rounded"
-                                        value={row.storeDispatchBoxNumber ?? ""}
-                                        disabled={!canEditStoreFields}
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "storeDispatchBoxNumber",
-                                            parseOptionalNumber(e.target.value),
-                                          )
-                                        }
-                                      />
-                                    </td>
-
-                                    <td className="px-4 py-2 border-b">
-                                      <input
-                                        type="date"
-                                        className="border p-1 rounded"
-                                        value={row.storeDispatchDate ?? ""}
-                                        disabled={!canEditStoreFields}
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "storeDispatchDate",
-                                            e.target.value,
-                                          )
-                                        }
-                                      />
-                                    </td>
-
-                                    <td className="px-4 py-2 border-b">
-                                      <input
-                                        type="date"
-                                        className="border p-1 rounded"
-                                        value={
-                                          row.storeReceivedDateNigeria ?? ""
-                                        }
-                                        disabled={!canEditNigeriaFields}
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "storeReceivedDateNigeria",
-                                            e.target.value,
-                                          )
-                                        }
-                                      />
-                                    </td>
-                                  </>
-                                )}
-
-                                <td className="px-4 py-2 border-b">
-                                  <textarea
-                                    rows={2}
-                                    className="border p-1 rounded w-full min-w-[180px]"
-                                    value={row.storeRemarks ?? ""}
-                                    disabled={!canEditStoreFields}
-                                    onChange={(e) =>
-                                      handleFieldChange(
-                                        row._id,
-                                        "storeRemarks",
-                                        e.target.value,
-                                      )
-                                    }
-                                  />
-                                </td>
-
-                                {showAll && (
-                                  <td className="px-4 py-2 border-b">
-                                    <textarea
-                                      rows={2}
-                                      className="border p-1 rounded w-full min-w-[180px]"
-                                      value={row.storeNigeriaRemarks ?? ""}
-                                      disabled={!canEditNigeriaFields}
-                                      onChange={(e) =>
-                                        handleFieldChange(
-                                          row._id,
-                                          "storeNigeriaRemarks",
-                                          e.target.value,
-                                        )
-                                      }
-                                    />
-                                  </td>
-                                )}
-                              </>
-                            );
-                          })()}
-                        </tr>
-                      ) : (
-                        /* ------------- ALL OTHER SECTIONS (DEFAULT TABLE) ------------- */
-                        <tr
-                          key={row._id || index}
-                          className={
-                            selectedOption === "Material Received" &&
-                            isMaterialMismatch(row)
-                              ? "bg-red-200 hover:bg-red-300 transition"
-                              : `${
-                                  index % 2 === 0 ? "bg-gray-50" : "bg-white"
-                                } hover:bg-red-50 transition`
-                          }
-                        >
-                          {/* DATE */}
-                          <td className="px-4 py-2 border-b">
-                            {isDefaultEditable ? (
-                              <input
-                                type="date"
-                                className="border p-1 rounded w-full"
-                                value={row.date ?? ""}
-                                onChange={(e) =>
-                                  handleFieldChange(
-                                    row._id,
-                                    "date",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                            ) : row.date ? (
-                              new Date(row.date)
-                                .toLocaleDateString("en-GB")
-                                .replace(/\//g, "-")
-                            ) : (
-                              ""
-                            )}
-                          </td>
-
-                          {/* SITE */}
-                          <td className="px-4 py-2 border-b">
-                            {isDefaultEditable ? (
-                              <select
-                                className="border p-1 rounded w-full"
-                                value={row.site ?? ""}
-                                onChange={(e) =>
-                                  handleFieldChange(
-                                    row._id,
-                                    "site",
-                                    e.target.value,
-                                  )
-                                }
-                              >
-                                <option value="">Select Site</option>
-                                <option value="HIPL">HIPL</option>
-                                <option value="RSIPL">RSIPL</option>
-                                <option value="HRM">HRM</option>
-                                <option value="SUNAGROW">SUNAGROW</option>
-                                <option value="RICE FIELD">RICE FIELD</option>
-                              </select>
-                            ) : (
-                              row.site
-                            )}
-                          </td>
-
-                          {/* UNIQUE ID (ALWAYS READ ONLY) */}
-                          <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                            {row.uniqueId}
-                          </td>
-
-                          {/* INDENT NUMBER */}
-                          <td className="px-4 py-2 border-b">
-                            {isDefaultEditable ? (
-                              <input
-                                type="text"
-                                className="border p-1 rounded w-full"
-                                value={row.indentNumber ?? ""}
-                                onChange={(e) =>
-                                  handleFieldChange(
-                                    row._id,
-                                    "indentNumber",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                            ) : (
-                              row.indentNumber
-                            )}
-                          </td>
-
-                          {/* ITEM NUMBER */}
-                          <td className="px-4 py-2 border-b">
-                            {isDefaultEditable ? (
-                              <input
-                                type="text"
-                                className="border p-1 rounded w-full"
-                                value={row.itemNumber ?? ""}
-                                onChange={(e) =>
-                                  handleFieldChange(
-                                    row._id,
-                                    "itemNumber",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                            ) : (
-                              row.itemNumber
-                            )}
-                          </td>
-
-                          {/* ITEM DESCRIPTION */}
-                          <td className="px-4 py-2 border-b sticky-item-description">
-                            {isDefaultEditable ? (
-                              <input
-                                type="text"
-                                className="border p-1 rounded w-full"
-                                value={row.itemDescription ?? ""}
-                                onChange={(e) =>
-                                  handleFieldChange(
-                                    row._id,
-                                    "itemDescription",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                            ) : (
-                              row.itemDescription
-                            )}
-                          </td>
-
-                          {/* UOM */}
-                          <td className="px-4 py-2 border-b">
-                            {isDefaultEditable ? (
-                              <input
-                                type="text"
-                                className="border p-1 rounded w-full"
-                                value={row.uom ?? ""}
-                                onChange={(e) =>
-                                  handleFieldChange(
-                                    row._id,
-                                    "uom",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                            ) : (
-                              row.uom
-                            )}
-                          </td>
-
-                          {/* TOTAL QUANTITY */}
-                          <td className="px-4 py-2 border-b">
-                            {isDefaultEditable ? (
-                              <input
-                                type="number"
-                                className="border p-1 rounded w-full"
-                                value={row.totalQuantity ?? ""}
-                                onChange={(e) =>
-                                  handleFieldChange(
-                                    row._id,
-                                    "totalQuantity",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                            ) : (
-                              row.totalQuantity
-                            )}
-                          </td>
-
-                          {/* SUBMITTED BY (ALWAYS READ ONLY) */}
-                          <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                            {row.submittedBy}
-                          </td>
-
-                          {/* SECTION */}
-                          <td className="px-4 py-2 border-b">
-                            {isDefaultEditable ? (
-                              <select
-                                className="border p-1 rounded w-full"
-                                value={row.section ?? ""}
-                                onChange={(e) =>
-                                  handleFieldChange(
-                                    row._id,
-                                    "section",
-                                    e.target.value,
-                                  )
-                                }
-                              >
-                                <option value="">Select Section</option>
-                                <option value="REFINERY">REFINERY</option>
-                                <option value="CENTRAL STORE">
-                                  CENTRAL STORE
-                                </option>
-                                <option value="MEGA STORE">MEGA STORE</option>
-                                <option value="OILS STORE">OILS STORE</option>
-                                <option value="PP STORE">PP STORE</option>
-                                <option value="RSIPL">RSIPL</option>
-                                <option value="HRM">HRM</option>
-                                <option value="OILS LAB">OILS LAB</option>
-                                <option value="RSIPL-PROJECT-R">
-                                  RSIPL-PROJECT-R
-                                </option>
-                                <option value="RSIPL-PROJECT-S">
-                                  RSIPL-PROJECT-S
-                                </option>
-                              </select>
-                            ) : (
-                              row.section
-                            )}
-                          </td>
-
-                          {/* DOER NAME */}
-                          <td className="px-4 py-2 border-b">
-                            {selectedOption === "Indent Verification" ? (
-                              <select
-                                className="border p-1 rounded w-full"
-                                value={row.doerName ?? ""}
-                                onChange={(e) =>
-                                  handleFieldChange(
-                                    row._id,
-                                    "doerName",
-                                    e.target.value,
-                                  )
-                                }
-                              >
-                                <option value="">Select Doer Name</option>
-                                <option value="Executive 1">Executive 1</option>
-                                <option value="Executive 2">Executive 2</option>
-                                <option value="Executive 3">Executive 3</option>
-                                <option value="Executive 4">Executive 4</option>
-                                {/* ✅ Local Purchase buckets */}
-                                <option value="Local 1">
-                                  Local Purchase 1
-                                </option>
-                                <option value="Local 2">
-                                  Local Purchase 2
-                                </option>
-                                <option value="Local 3">
-                                  Local Purchase 3
-                                </option>
-                              </select>
-                            ) : (
-                              row.doerName
-                            )}
-                          </td>
-
-                          {/* ------------ OTHER CONDITION BLOCKS REMAIN SAME ------------ */}
-
-                          {/* PMS Master Sheet */}
-                          {/* Indent Verification */}
-                          {selectedOption === "Indent Verification" && (
-                            <>
-                              {/* Remarks */}
-                              <td className="px-4 py-2 border-b">
-                                <textarea
-                                  rows={2}
-                                  className="border p-1 rounded w-full min-w-[180px]"
-                                  value={row.remarksIndentVerification ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "remarksIndentVerification",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              {/* Application Area */}
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded w-full"
-                                  value={row.applicationArea ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "applicationArea",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              {/* Old Material Status */}
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded w-full"
-                                  value={row.oldMaterialStatus ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "oldMaterialStatus",
-                                      e.target.value,
-                                    )
-                                  }
-                                  placeholder="Old material status"
-                                />
-                              </td>
-
-                              {/* Order Approved By */}
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded w-full"
-                                  value={row.orderApprovedBy ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "orderApprovedBy",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-                            </>
-                          )}
-
-                          {/* PMS Master Sheet */}
-                          {selectedOption === "PMS Master Sheet" && (
-                            <>
-                              <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                {row.plannedGetQuotation
-                                  ? new Date(row.plannedGetQuotation)
-                                      .toLocaleDateString("en-GB")
-                                      .replace(/\//g, "-")
-                                  : ""}
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="date"
-                                  className="border p-1 rounded"
-                                  value={row.actualGetQuotation ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "actualGetQuotation",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
+                            {/* Status column: PA -> Upload Status, PSE -> Review Status */}
+                            {role === "PA" && (
+                              <td className="px-4 py-1 border-b w-[150px] text-center">
                                 <select
-                                  className="border p-1 rounded"
-                                  value={row.quotationStatus ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "quotationStatus",
-                                      e.target.value,
-                                    )
+                                  className="border p-1 rounded w-[120px]"
+                                  value={row.comparisonStatementStatus ?? ""}
+                                  disabled={
+                                    localStorage.getItem("role") === "PA" &&
+                                    row.comparisonStatementStatus === "Done"
                                   }
-                                >
-                                  <option value="">--Select--</option>
-                                  <option value="Inquiry Send">
-                                    Inquiry Send
-                                  </option>
-                                  <option value="Hold">Hold</option>
-                                </select>
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <select
-                                  className="border p-1 rounded"
-                                  value={row.doerStatus ?? ""}
                                   onChange={(e) =>
                                     handleFieldChange(
                                       row._id,
-                                      "doerStatus",
-                                      e.target.value,
-                                    )
-                                  }
-                                >
-                                  <option value="">--Select--</option>
-                                  <option value="Done">Done</option>
-                                </select>
-                              </td>
-
-                              <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                {row.timeDelayGetQuotation}
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <textarea
-                                  rows={2}
-                                  className="border p-1 rounded w-full min-w-[180px]"
-                                  value={row.remarksGetQuotation ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "remarksGetQuotation",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                {row.plannedTechApproval
-                                  ? new Date(row.plannedTechApproval)
-                                      .toLocaleDateString("en-GB")
-                                      .replace(/\//g, "-")
-                                  : ""}
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="date"
-                                  className="border p-1 rounded"
-                                  value={row.actualTechApproval ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "actualTechApproval",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <select
-                                  className="border p-1 rounded"
-                                  value={row.technicalApprovalStatus ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "technicalApprovalStatus",
+                                      "comparisonStatementStatus",
                                       e.target.value,
                                     )
                                   }
@@ -3276,72 +2460,17 @@ export default function PurchasePage() {
                                   <option value="Reopen">Reopen</option>
                                 </select>
                               </td>
+                            )}
 
-                              <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                {row.timeDelayTechApproval}
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded"
-                                  value={row.approverName ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "approverName",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <textarea
-                                  rows={2}
-                                  className="border p-1 rounded w-full min-w-[180px]"
-                                  value={row.remarksTechApproval ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "remarksTechApproval",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                {row.plannedCommercialNegotiation
-                                  ? new Date(row.plannedCommercialNegotiation)
-                                      .toLocaleDateString("en-GB")
-                                      .replace(/\//g, "-")
-                                  : ""}
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="date"
-                                  className="border p-1 rounded"
-                                  value={row.actualCommercialNegotiation ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "actualCommercialNegotiation",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
+                            {role === "PSE" && (
+                              <td className="px-4 py-1 border-b w-[150px] text-center">
                                 <select
-                                  className="border p-1 rounded"
-                                  value={row.finalizeTermsStatus ?? ""}
+                                  className="border p-1 rounded w-[120px]"
+                                  value={row.comparisonStatementStatus ?? ""}
                                   onChange={(e) =>
                                     handleFieldChange(
                                       row._id,
-                                      "finalizeTermsStatus",
+                                      "comparisonStatementStatus",
                                       e.target.value,
                                     )
                                   }
@@ -3350,407 +2479,768 @@ export default function PurchasePage() {
                                   <option value="Hold">Hold</option>
                                   <option value="Cancelled">Cancelled</option>
                                   <option value="Done">Done</option>
+                                  <option value="Reopen">Reopen</option>
                                 </select>
                               </td>
+                            )}
+                          </tr>
+                        ) : selectedOption === "Store" ? (
+                          /* ------------- STORE SECTION ------------- */
+                          <tr
+                            key={row._id || index}
+                            className={
+                              selectedOption === "Store" &&
+                              row.storeManualClosed
+                                ? "bg-blue-100 border-l-4 border-blue-600 hover:bg-blue-200 transition"
+                                : selectedOption === "Material Received" &&
+                                  isMaterialMismatch(row)
+                                ? "bg-red-200 hover:bg-red-300 transition"
+                                : `${
+                                    index % 2 === 0 ? "bg-gray-50" : "bg-white"
+                                  } hover:bg-red-50 transition`
+                            }
+                          >
+                            {(() => {
+                              const currentRole =
+                                localStorage.getItem("role") || "";
+                              const currentUser =
+                                localStorage.getItem("username") || "";
+                              const isAdmin = currentRole === "ADMIN";
+                              const isStore = currentRole === "Store";
 
-                              <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                {row.timeDelayCommercialNegotiation}
-                              </td>
+                              const isNigeriaStoreUser =
+                                isStore &&
+                                currentUser === "Store Person Nigeria";
+                              const isHiplStoreUser =
+                                isStore && currentUser === "Store Person HIPL";
 
-                              <td className="px-4 py-2 border-b">
-                                <select
-                                  className="border p-1 rounded"
-                                  value={row.getApproval ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "getApproval",
-                                      e.target.value,
-                                    )
-                                  }
-                                >
-                                  <option value="">--Select--</option>
-                                  <option value="Hold">Hold</option>
-                                  <option value="Cancelled">Cancelled</option>
-                                  <option value="Done">Done</option>
-                                </select>
-                              </td>
+                              const siteKey = (
+                                selectedSite || ""
+                              ).toUpperCase();
+                              const showAll =
+                                siteKey === "SUNAGROW" ||
+                                siteKey === "RICE FIELD" ||
+                                siteKey === "";
 
-                              <td className="px-4 py-2 border-b">
-                                <select
-                                  className="border p-1 rounded"
-                                  value={row.approverName2 ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "approverName2",
-                                      e.target.value,
-                                    )
-                                  }
-                                >
-                                  <option value="">--Select--</option>
-                                  <option value="Tapan Agarwala">
-                                    Tapan Agarwala
-                                  </option>
-                                  <option value="Rohit Agarwala">
-                                    Rohit Agarwala
-                                  </option>
-                                  <option value="Hiru Ghosh">Hiru Ghosh</option>
-                                  <option value="Arindam Saha">
-                                    Arindam Saha
-                                  </option>
-                                </select>
-                              </td>
+                              // Balance is auto-calculated:
+                              // Balance Qty = Total Qty - Received Qty
+                              const totalQty = Number(row.totalQuantity ?? 0);
+                              const receivedQty = Math.max(
+                                0,
+                                Number(row.storeReceivedQuantity ?? 0),
+                              );
+                              const computedBalanceQty = receivedQty - totalQty;
 
-                              <td className="px-4 py-2 border-b">
-                                <textarea
-                                  rows={2}
-                                  className="border p-1 rounded w-full min-w-[180px]"
-                                  value={row.remarksCommercialNegotiation ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "remarksCommercialNegotiation",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
+                              // If a row is manually closed, lock received/invoice edits to avoid accidental changes.
+                              const isStoreManuallyClosed = Boolean(
+                                row.storeManualClosed,
+                              );
 
-                              <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                {row.plannedPoGeneration
-                                  ? new Date(row.plannedPoGeneration)
-                                      .toLocaleDateString("en-GB")
-                                      .replace(/\//g, "-")
-                                  : ""}
-                              </td>
+                              // Permissions:
+                              // - Admin: edit all store fields
+                              // - Store Person HIPL: can edit all Store (HIPL) fields (Status..Remarks)
+                              //   but can change Received Qty/Date + Invoice No/Date only while balance > 0.
+                              // - Store Person Nigeria: edit only Nigeria fields
+                              const canEditNigeriaFields =
+                                isAdmin || isNigeriaStoreUser;
+                              const canEditStoreFields =
+                                isAdmin || isHiplStoreUser;
+                              // ✅ Allow editing received qty/date even when balance is 0 (including excess receipt).
+                              // Only block edits after manual close.
+                              const canEditReceivedAndInvoice =
+                                (isAdmin || isHiplStoreUser) &&
+                                !isStoreManuallyClosed;
 
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="date"
-                                  className="border p-1 rounded"
-                                  value={row.actualPoGeneration ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "actualPoGeneration",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
+                              return (
+                                <>
+                                  {/* Base fields (from DB) */}
+                                  <td className="px-4 py-2 border-b text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={isStoreRowSelected(row._id)}
+                                      onChange={() =>
+                                        toggleStoreRowSelected(row._id)
+                                      }
+                                      disabled={
+                                        !row._id || isStoreManuallyClosed
+                                      }
+                                    />
+                                  </td>
+                                  <td className="px-4 py-2 border-b">
+                                    {row.date}
+                                  </td>
+                                  <td className="px-4 py-2 border-b">
+                                    {row.site}
+                                  </td>
+                                  <td className="px-4 py-2 border-b">
+                                    {row.uniqueId}
+                                  </td>
+                                  <td className="px-4 py-2 border-b">
+                                    {row.indentNumber}
+                                  </td>
+                                  <td className="px-4 py-2 border-b">
+                                    {row.itemNumber}
+                                  </td>
+                                  <td className="px-4 py-2 border-b sticky-item-description">
+                                    {row.itemDescription}
+                                  </td>
+                                  <td className="px-4 py-2 border-b">
+                                    {row.uom}
+                                  </td>
+                                  <td className="px-4 py-2 border-b">
+                                    {row.totalQuantity}
+                                  </td>
+                                  <td className="px-4 py-2 border-b">
+                                    {row.submittedBy}
+                                  </td>
+                                  <td className="px-4 py-2 border-b">
+                                    {row.section}
+                                  </td>
+                                  <td className="px-4 py-2 border-b">
+                                    {row.vendorName}
+                                  </td>
 
-                              <td className="px-4 py-2 border-b">
-                                <select
-                                  className="border p-1 rounded"
-                                  value={row.poGenerationStatus ?? ""}
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    handleFieldChange(
-                                      row._id,
-                                      "poGenerationStatus",
-                                      value,
-                                    );
-
-                                    if (value === "Done") {
-                                      const today = new Date();
-                                      const formattedDate = `${String(
-                                        today.getDate(),
-                                      ).padStart(2, "0")}-${String(
-                                        today.getMonth() + 1,
-                                      ).padStart(
-                                        2,
-                                        "0",
-                                      )}-${today.getFullYear()}`;
-
-                                      handleFieldChange(
-                                        row._id,
-                                        "poDate",
-                                        formattedDate,
-                                      );
-                                    } else {
-                                      handleFieldChange(row._id, "poDate", "");
-                                    }
-                                  }}
-                                >
-                                  <option value="">--Select--</option>
-                                  <option value="Hold">Hold</option>
-                                  <option value="Cancelled">Cancelled</option>
-                                  <option value="Done">Done</option>
-                                </select>
-                              </td>
-
-                              <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                {row.timeDelayPoGeneration}
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="date"
-                                  className="border p-1 rounded"
-                                  value={row.poDate ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "poDate",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded"
-                                  value={row.poNumber ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "poNumber",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                {(() => {
-                                  const hasUploadRole =
-                                    role === "ADMIN" ||
-                                    role === "PSE" ||
-                                    role === "PA";
-                                  const alreadyUploaded = Boolean(
-                                    row.poPdfWebViewLink,
-                                  );
-                                  const canReupload =
-                                    role === "ADMIN" || role === "PSE";
-                                  const canUpload =
-                                    hasUploadRole &&
-                                    (canReupload || !alreadyUploaded);
-                                  return (
-                                    <div className="flex flex-col gap-1">
-                                      <input
-                                        type="file"
-                                        accept="application/pdf"
-                                        disabled={
-                                          !canUpload ||
-                                          uploadingPoRowId === row._id
-                                        }
-                                        onChange={(e) => {
-                                          const f = e.target.files?.[0];
-                                          if (!f) return;
-                                          handlePoUpload(row._id, f);
-                                          e.target.value = "";
-                                        }}
-                                      />
-                                      {alreadyUploaded && (
-                                        <span className="text-xs text-green-700 font-semibold">
-                                          Uploaded
-                                        </span>
-                                      )}
-                                    </div>
-                                  );
-                                })()}
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                {row.poPdfWebViewLink ? (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      window.open(
-                                        row.poPdfWebViewLink,
-                                        "_blank",
-                                      )
-                                    }
-                                    disabled={uploadingPoRowId === row._id}
-                                    className="btn btn-sm btn-warning ring-2 ring-yellow-400 font-semibold"
-                                  >
-                                    Show PO
-                                  </button>
-                                ) : (
-                                  <span style={{ color: "#888" }}>No PO</span>
-                                )}
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded"
-                                  value={row.vendorName ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "vendorName",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="number"
-                                  className="border p-1 rounded"
-                                  value={row.leadDays ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "leadDays",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="number"
-                                  className="border p-1 rounded"
-                                  value={row.amount ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "amount",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded w-full"
-                                  value={row.applicationArea ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "applicationArea",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <select
-                                  className="border p-1 rounded w-full"
-                                  value={row.oldMaterialStatus ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "oldMaterialStatus",
-                                      e.target.value,
-                                    )
-                                  }
-                                >
-                                  <option value="">Select</option>
-                                  <option value="YES">YES</option>
-                                  <option value="NO">NO</option>
-                                </select>
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded w-full"
-                                  value={row.orderApprovedBy ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "orderApprovedBy",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <select
-                                  className="border p-1 rounded"
-                                  value={row.paymentCondition ?? ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "paymentCondition",
-                                      e.target.value,
-                                    )
-                                  }
-                                >
-                                  <option value="">--Select--</option>
-                                  <option value="After Received">
-                                    After Received
-                                  </option>
-                                  <option value="Before Dispatch">
-                                    Before Dispatch
-                                  </option>
-                                  <option value="PWP BBD">PWP BBD</option>
-                                  <option value="PWP BBD FAR">
-                                    PWP BBD FAR
-                                  </option>
-                                  <option value="PWP BBD PAPW">
-                                    PWP BBD PAPW
-                                  </option>
-                                  <option value="PAPW">PAPW</option>
-                                </select>
-
-                                {String(row.paymentCondition || "")
-                                  .toUpperCase()
-                                  .includes("PAPW") && (
-                                  <div className="mt-1">
+                                  {/* Store fields */}
+                                  <td className="px-4 py-2 border-b">
                                     <select
-                                      className="border p-1 rounded w-full"
-                                      value={row.papwDays ?? ""}
+                                      className="border p-1 rounded"
+                                      value={row.storeStatus ?? ""}
+                                      disabled={!canEditStoreFields}
                                       onChange={(e) =>
                                         handleFieldChange(
                                           row._id,
-                                          "papwDays",
-                                          parseOptionalNumber(e.target.value),
+                                          "storeStatus",
+                                          e.target.value,
                                         )
                                       }
                                     >
-                                      <option value="">--PAPW Days--</option>
-                                      <option value={15}>15</option>
-                                      <option value={30}>30</option>
-                                      <option value={45}>45</option>
-                                      <option value={60}>60</option>
-                                      <option value={75}>75</option>
-                                      <option value={90}>90</option>
+                                      <option value="">--Select--</option>
+                                      <option value="Received">Received</option>
                                     </select>
-                                  </div>
-                                )}
-                              </td>
+                                  </td>
 
-                              <td className="px-4 py-2 border-b">
-                                <textarea
-                                  rows={2}
-                                  className="border p-1 rounded w-full min-w-[180px]"
-                                  value={row.remarksPoGeneration ?? ""}
+                                  <td className="px-4 py-2 border-b">
+                                    <input
+                                      type="date"
+                                      className="border p-1 rounded"
+                                      value={row.storeReceivedDate ?? ""}
+                                      disabled={!canEditReceivedAndInvoice}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          row._id,
+                                          "storeReceivedDate",
+                                          e.target.value,
+                                        )
+                                      }
+                                    />
+                                  </td>
+
+                                  <td className="px-4 py-2 border-b">
+                                    <input
+                                      type="number"
+                                      className="border p-1 rounded"
+                                      value={row.storeReceivedQuantity ?? ""}
+                                      disabled={!canEditReceivedAndInvoice}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          row._id,
+                                          "storeReceivedQuantity",
+                                          parseOptionalNumber(e.target.value),
+                                        )
+                                      }
+                                    />
+                                  </td>
+
+                                  <td className="px-4 py-2 border-b">
+                                    <div className="border p-1 rounded bg-gray-100">
+                                      {computedBalanceQty > 0 ? (
+                                        <>
+                                          <span className="text-green-600 font-semibold">
+                                            +
+                                          </span>
+                                          <span>{computedBalanceQty}</span>
+                                        </>
+                                      ) : (
+                                        <span>
+                                          {Math.abs(computedBalanceQty)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+
+                                  <td className="px-4 py-2 border-b">
+                                    <textarea
+                                      rows={2}
+                                      className="border p-1 rounded w-full min-w-[180px]"
+                                      value={row.storeInvoiceNumber ?? ""}
+                                      disabled={!canEditReceivedAndInvoice}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          row._id,
+                                          "storeInvoiceNumber",
+                                          e.target.value,
+                                        )
+                                      }
+                                    />
+                                  </td>
+
+                                  <td className="px-4 py-2 border-b">
+                                    <input
+                                      type="date"
+                                      className="border p-1 rounded"
+                                      value={row.storeInvoiceDate ?? ""}
+                                      disabled={!canEditReceivedAndInvoice}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          row._id,
+                                          "storeInvoiceDate",
+                                          e.target.value,
+                                        )
+                                      }
+                                    />
+                                  </td>
+
+                                  <td className="px-4 py-2 border-b">
+                                    <input
+                                      type="file"
+                                      accept="application/pdf"
+                                      disabled={
+                                        uploadingInvoiceRowId === row._id
+                                      }
+                                      onChange={(e) => {
+                                        const f = e.target.files?.[0];
+                                        if (!f) return;
+                                        handleInvoiceUpload(row._id, f);
+                                        e.target.value = "";
+                                      }}
+                                    />
+                                  </td>
+
+                                  <td className="px-4 py-2 border-b">
+                                    {row.invoicePdfWebViewLink ? (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          window.open(
+                                            row.invoicePdfWebViewLink,
+                                            "_blank",
+                                          )
+                                        }
+                                        disabled={
+                                          uploadingInvoiceRowId === row._id
+                                        }
+                                        className="btn btn-sm btn-primary"
+                                      >
+                                        Show Invoice
+                                      </button>
+                                    ) : (
+                                      <span style={{ color: "#888" }}>
+                                        No Invoice
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  <td className="px-4 py-2 border-b">
+                                    <input
+                                      type="number"
+                                      className="border p-1 rounded"
+                                      value={row.storePrice ?? ""}
+                                      disabled={!canEditStoreFields}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          row._id,
+                                          "storePrice",
+                                          parseOptionalNumber(e.target.value),
+                                        )
+                                      }
+                                    />
+                                  </td>
+
+                                  {showAll && (
+                                    <>
+                                      <td className="px-4 py-2 border-b">
+                                        <input
+                                          type="number"
+                                          className="border p-1 rounded"
+                                          value={row.storeBoxNumber ?? ""}
+                                          disabled={!canEditStoreFields}
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "storeBoxNumber",
+                                              parseOptionalNumber(
+                                                e.target.value,
+                                              ),
+                                            )
+                                          }
+                                        />
+                                      </td>
+
+                                      <td className="px-4 py-2 border-b">
+                                        <textarea
+                                          rows={2}
+                                          className="border p-1 rounded w-full min-w-[180px]"
+                                          value={row.storeModeOfDispatch ?? ""}
+                                          disabled={!canEditStoreFields}
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "storeModeOfDispatch",
+                                              e.target.value,
+                                            )
+                                          }
+                                        />
+                                      </td>
+
+                                      <td className="px-4 py-2 border-b">
+                                        <textarea
+                                          rows={2}
+                                          className="border p-1 rounded w-full min-w-[180px]"
+                                          value={
+                                            row.storeDispatchDocumentNumber ??
+                                            ""
+                                          }
+                                          disabled={!canEditStoreFields}
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "storeDispatchDocumentNumber",
+                                              e.target.value,
+                                            )
+                                          }
+                                        />
+                                      </td>
+
+                                      <td className="px-4 py-2 border-b">
+                                        <input
+                                          type="number"
+                                          className="border p-1 rounded"
+                                          value={
+                                            row.storeDispatchBoxNumber ?? ""
+                                          }
+                                          disabled={!canEditStoreFields}
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "storeDispatchBoxNumber",
+                                              parseOptionalNumber(
+                                                e.target.value,
+                                              ),
+                                            )
+                                          }
+                                        />
+                                      </td>
+
+                                      <td className="px-4 py-2 border-b">
+                                        <input
+                                          type="date"
+                                          className="border p-1 rounded"
+                                          value={row.storeDispatchDate ?? ""}
+                                          disabled={!canEditStoreFields}
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "storeDispatchDate",
+                                              e.target.value,
+                                            )
+                                          }
+                                        />
+                                      </td>
+
+                                      <td className="px-4 py-2 border-b">
+                                        <input
+                                          type="date"
+                                          className="border p-1 rounded"
+                                          value={
+                                            row.storeReceivedDateNigeria ?? ""
+                                          }
+                                          disabled={!canEditNigeriaFields}
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "storeReceivedDateNigeria",
+                                              e.target.value,
+                                            )
+                                          }
+                                        />
+                                      </td>
+                                    </>
+                                  )}
+
+                                  <td className="px-4 py-2 border-b">
+                                    <textarea
+                                      rows={2}
+                                      className="border p-1 rounded w-full min-w-[180px]"
+                                      value={row.storeRemarks ?? ""}
+                                      disabled={!canEditStoreFields}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          row._id,
+                                          "storeRemarks",
+                                          e.target.value,
+                                        )
+                                      }
+                                    />
+                                  </td>
+
+                                  {showAll && (
+                                    <td className="px-4 py-2 border-b">
+                                      <textarea
+                                        rows={2}
+                                        className="border p-1 rounded w-full min-w-[180px]"
+                                        value={row.storeNigeriaRemarks ?? ""}
+                                        disabled={!canEditNigeriaFields}
+                                        onChange={(e) =>
+                                          handleFieldChange(
+                                            row._id,
+                                            "storeNigeriaRemarks",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                    </td>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </tr>
+                        ) : (
+                          /* ------------- ALL OTHER SECTIONS (DEFAULT TABLE) ------------- */
+                          <tr
+                            key={row._id || index}
+                            className={
+                              selectedOption === "Material Received" &&
+                              isMaterialMismatch(row)
+                                ? "bg-red-200 hover:bg-red-300 transition"
+                                : `${
+                                    index % 2 === 0 ? "bg-gray-50" : "bg-white"
+                                  } hover:bg-red-50 transition`
+                            }
+                          >
+                            {/* DATE */}
+                            <td className="px-4 py-2 border-b">
+                              {isDefaultEditable ? (
+                                <input
+                                  type="date"
+                                  className="border p-1 rounded w-full"
+                                  value={row.date ?? ""}
                                   onChange={(e) =>
                                     handleFieldChange(
                                       row._id,
-                                      "remarksPoGeneration",
+                                      "date",
                                       e.target.value,
                                     )
                                   }
                                 />
-                              </td>
-                            </>
-                          )}
-                          {selectedOption === "Get Quotation" &&
-                            row.doerName !== "" &&
-                            ((row.dbDoerStatus ?? "") !== "Done" ||
-                              (row.dbComparisonStatementStatus ?? "") !==
-                                "Done") && (
+                              ) : row.date ? (
+                                new Date(row.date)
+                                  .toLocaleDateString("en-GB")
+                                  .replace(/\//g, "-")
+                              ) : (
+                                ""
+                              )}
+                            </td>
+
+                            {/* SITE */}
+                            <td className="px-4 py-2 border-b">
+                              {isDefaultEditable ? (
+                                <select
+                                  className="border p-1 rounded w-full"
+                                  value={row.site ?? ""}
+                                  onChange={(e) =>
+                                    handleFieldChange(
+                                      row._id,
+                                      "site",
+                                      e.target.value,
+                                    )
+                                  }
+                                >
+                                  <option value="">Select Site</option>
+                                  <option value="HIPL">HIPL</option>
+                                  <option value="RSIPL">RSIPL</option>
+                                  <option value="HRM">HRM</option>
+                                  <option value="SUNAGROW">SUNAGROW</option>
+                                  <option value="RICE FIELD">RICE FIELD</option>
+                                </select>
+                              ) : (
+                                row.site
+                              )}
+                            </td>
+
+                            {/* UNIQUE ID (ALWAYS READ ONLY) */}
+                            <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                              {row.uniqueId}
+                            </td>
+
+                            {/* INDENT NUMBER */}
+                            <td className="px-4 py-2 border-b">
+                              {isDefaultEditable ? (
+                                <input
+                                  type="text"
+                                  className="border p-1 rounded w-full"
+                                  value={row.indentNumber ?? ""}
+                                  onChange={(e) =>
+                                    handleFieldChange(
+                                      row._id,
+                                      "indentNumber",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              ) : (
+                                row.indentNumber
+                              )}
+                            </td>
+
+                            {/* ITEM NUMBER */}
+                            <td className="px-4 py-2 border-b">
+                              {isDefaultEditable ? (
+                                <input
+                                  type="text"
+                                  className="border p-1 rounded w-full"
+                                  value={row.itemNumber ?? ""}
+                                  onChange={(e) =>
+                                    handleFieldChange(
+                                      row._id,
+                                      "itemNumber",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              ) : (
+                                row.itemNumber
+                              )}
+                            </td>
+
+                            {/* ITEM DESCRIPTION */}
+                            <td className="px-4 py-2 border-b sticky-item-description">
+                              {isDefaultEditable ? (
+                                <input
+                                  type="text"
+                                  className="border p-1 rounded w-full"
+                                  value={row.itemDescription ?? ""}
+                                  onChange={(e) =>
+                                    handleFieldChange(
+                                      row._id,
+                                      "itemDescription",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              ) : (
+                                row.itemDescription
+                              )}
+                            </td>
+
+                            {/* UOM */}
+                            <td className="px-4 py-2 border-b">
+                              {isDefaultEditable ? (
+                                <input
+                                  type="text"
+                                  className="border p-1 rounded w-full"
+                                  value={row.uom ?? ""}
+                                  onChange={(e) =>
+                                    handleFieldChange(
+                                      row._id,
+                                      "uom",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              ) : (
+                                row.uom
+                              )}
+                            </td>
+
+                            {/* TOTAL QUANTITY */}
+                            <td className="px-4 py-2 border-b">
+                              {isDefaultEditable ? (
+                                <input
+                                  type="number"
+                                  className="border p-1 rounded w-full"
+                                  value={row.totalQuantity ?? ""}
+                                  onChange={(e) =>
+                                    handleFieldChange(
+                                      row._id,
+                                      "totalQuantity",
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              ) : (
+                                row.totalQuantity
+                              )}
+                            </td>
+
+                            {/* SUBMITTED BY (ALWAYS READ ONLY) */}
+                            <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                              {row.submittedBy}
+                            </td>
+
+                            {/* SECTION */}
+                            <td className="px-4 py-2 border-b">
+                              {isDefaultEditable ? (
+                                <select
+                                  className="border p-1 rounded w-full"
+                                  value={row.section ?? ""}
+                                  onChange={(e) =>
+                                    handleFieldChange(
+                                      row._id,
+                                      "section",
+                                      e.target.value,
+                                    )
+                                  }
+                                >
+                                  <option value="">Select Section</option>
+                                  <option value="REFINERY">REFINERY</option>
+                                  <option value="CENTRAL STORE">
+                                    CENTRAL STORE
+                                  </option>
+                                  <option value="MEGA STORE">MEGA STORE</option>
+                                  <option value="OILS STORE">OILS STORE</option>
+                                  <option value="PP STORE">PP STORE</option>
+                                  <option value="RSIPL">RSIPL</option>
+                                  <option value="HRM">HRM</option>
+                                  <option value="OILS LAB">OILS LAB</option>
+                                  <option value="RSIPL-PROJECT-R">
+                                    RSIPL-PROJECT-R
+                                  </option>
+                                  <option value="RSIPL-PROJECT-S">
+                                    RSIPL-PROJECT-S
+                                  </option>
+                                </select>
+                              ) : (
+                                row.section
+                              )}
+                            </td>
+
+                            {/* DOER NAME */}
+                            <td className="px-4 py-2 border-b">
+                              {selectedOption === "Indent Verification" ? (
+                                <select
+                                  className="border p-1 rounded w-full"
+                                  value={row.doerName ?? ""}
+                                  onChange={(e) =>
+                                    handleFieldChange(
+                                      row._id,
+                                      "doerName",
+                                      e.target.value,
+                                    )
+                                  }
+                                >
+                                  <option value="">Select Doer Name</option>
+                                  <option value="Executive 1">
+                                    Executive 1
+                                  </option>
+                                  <option value="Executive 2">
+                                    Executive 2
+                                  </option>
+                                  <option value="Executive 3">
+                                    Executive 3
+                                  </option>
+                                  <option value="Executive 4">
+                                    Executive 4
+                                  </option>
+                                  {/* ✅ Local Purchase buckets */}
+                                  <option value="Local 1">
+                                    Local Purchase 1
+                                  </option>
+                                  <option value="Local 2">
+                                    Local Purchase 2
+                                  </option>
+                                  <option value="Local 3">
+                                    Local Purchase 3
+                                  </option>
+                                </select>
+                              ) : (
+                                row.doerName
+                              )}
+                            </td>
+
+                            {/* ------------ OTHER CONDITION BLOCKS REMAIN SAME ------------ */}
+
+                            {/* PMS Master Sheet */}
+                            {/* Indent Verification */}
+                            {selectedOption === "Indent Verification" && (
                               <>
-                                {/* Planned Date (read-only) */}
-                                <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                  {formatDDMMYYYY(row.plannedGetQuotation)}
+                                {/* Remarks */}
+                                <td className="px-4 py-2 border-b">
+                                  <textarea
+                                    rows={2}
+                                    className="border p-1 rounded w-full min-w-[180px]"
+                                    value={row.remarksIndentVerification ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "remarksIndentVerification",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
                                 </td>
 
-                                {/* Actual Date */}
+                                {/* Application Area */}
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="text"
+                                    className="border p-1 rounded w-full"
+                                    value={row.applicationArea ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "applicationArea",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+
+                                {/* Old Material Status */}
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="text"
+                                    className="border p-1 rounded w-full"
+                                    value={row.oldMaterialStatus ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "oldMaterialStatus",
+                                        e.target.value,
+                                      )
+                                    }
+                                    placeholder="Old material status"
+                                  />
+                                </td>
+
+                                {/* Order Approved By */}
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="text"
+                                    className="border p-1 rounded w-full"
+                                    value={row.orderApprovedBy ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "orderApprovedBy",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+                              </>
+                            )}
+
+                            {/* PMS Master Sheet */}
+                            {selectedOption === "PMS Master Sheet" && (
+                              <>
+                                <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                  {row.plannedGetQuotation
+                                    ? new Date(row.plannedGetQuotation)
+                                        .toLocaleDateString("en-GB")
+                                        .replace(/\//g, "-")
+                                    : ""}
+                                </td>
+
                                 <td className="px-4 py-2 border-b">
                                   <input
                                     type="date"
@@ -3766,7 +3256,6 @@ export default function PurchasePage() {
                                   />
                                 </td>
 
-                                {/* Send for Get Quotation */}
                                 <td className="px-4 py-2 border-b">
                                   <select
                                     className="border p-1 rounded"
@@ -3784,11 +3273,9 @@ export default function PurchasePage() {
                                       Inquiry Send
                                     </option>
                                     <option value="Hold">Hold</option>
-                                    <option value="Cancelled">Cancelled</option>
                                   </select>
                                 </td>
 
-                                {/* Doer Status */}
                                 <td className="px-4 py-2 border-b">
                                   <select
                                     className="border p-1 rounded"
@@ -3806,12 +3293,10 @@ export default function PurchasePage() {
                                   </select>
                                 </td>
 
-                                {/* Time Delay (read-only) */}
                                 <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                  {row.timeDelayGetQuotation ?? ""}
+                                  {row.timeDelayGetQuotation}
                                 </td>
 
-                                {/* Remarks */}
                                 <td className="px-4 py-2 border-b">
                                   <textarea
                                     rows={2}
@@ -3827,567 +3312,312 @@ export default function PurchasePage() {
                                   />
                                 </td>
 
-                                {/* 📤 UPLOAD GET QUOTATION PDF */}
+                                <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                  {row.plannedTechApproval
+                                    ? new Date(row.plannedTechApproval)
+                                        .toLocaleDateString("en-GB")
+                                        .replace(/\//g, "-")
+                                    : ""}
+                                </td>
+
                                 <td className="px-4 py-2 border-b">
                                   <input
-                                    type="file"
-                                    accept="application/pdf"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) {
-                                        handlePdfUpload(row._id, file); // ✅ SAME function
-                                      }
-                                    }}
+                                    type="date"
+                                    className="border p-1 rounded"
+                                    value={row.actualTechApproval ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "actualTechApproval",
+                                        e.target.value,
+                                      )
+                                    }
                                   />
                                 </td>
 
-                                {/* 🔗 SHOW GET QUOTATION PDF */}
-                                <td className="px-4 py-2 border-b text-center">
-                                  {row.getQuotationPdfWebViewLink ||
-                                  pdfPreview[row._id] ? (
-                                    <a
-                                      href={
-                                        row.getQuotationPdfWebViewLink ||
-                                        pdfPreview[row._id]
-                                      }
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 underline"
-                                    >
-                                      View PDF
-                                    </a>
-                                  ) : (
-                                    <span className="text-gray-400">
-                                      No PDF
-                                    </span>
-                                  )}
+                                <td className="px-4 py-2 border-b">
+                                  <select
+                                    className="border p-1 rounded"
+                                    value={row.technicalApprovalStatus ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "technicalApprovalStatus",
+                                        e.target.value,
+                                      )
+                                    }
+                                  >
+                                    <option value="">--Select--</option>
+                                    <option value="Hold">Hold</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                    <option value="Done">Done</option>
+                                    <option value="Reopen">Reopen</option>
+                                  </select>
                                 </td>
-                              </>
-                            )}
-                          {selectedOption === "Technical Approval" && (
-                            <>
-                              {(() => {
-                                // ✅ Status currently (prefer live edited value, fallback to DB snapshot)
-                                 // Status currently (prefer live edited value, fallback to DB snapshot)
-                                const dbTechStatus =
-                                  row.dbTechnicalApprovalStatus ?? "";
-                                const isTechAlreadyDone =
-                                  dbTechStatus === "Done"; // lock only if already saved as Done in DB
 
-                                // Editable only for PSE / ADMIN and only if not already Done
-                                const canEditTechnical =
-                                  (role === "PSE" || role === "ADMIN") &&
-                                  !isTechAlreadyDone;
+                                <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                  {row.timeDelayTechApproval}
+                                </td>
 
-                                const statusValue = (
-                                  row.technicalApprovalStatus ??
-                                  row.dbTechnicalApprovalStatus ??
-                                  ""
-                                ).toString();
-                                const approverValue = (
-                                  row.approverName ??
-                                  row.dbApproverName ??
-                                  ""
-                                ).toString();
-                                const remarksValue = (
-                                  row.remarksTechApproval ??
-                                  row.dbRemarksTechApproval ??
-                                  ""
-                                ).toString();
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="text"
+                                    className="border p-1 rounded"
+                                    value={row.approverName ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "approverName",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
 
-                                return (
-                                  <>
-                                    <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                      {row.plannedTechApproval
-                                        ? new Date(row.plannedTechApproval)
-                                            .toLocaleDateString("en-GB")
-                                            .replace(/\//g, "-")
-                                        : ""}
-                                    </td>
+                                <td className="px-4 py-2 border-b">
+                                  <textarea
+                                    rows={2}
+                                    className="border p-1 rounded w-full min-w-[180px]"
+                                    value={row.remarksTechApproval ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "remarksTechApproval",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
 
-                                    <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                      {row.actualTechApproval
-                                        ? new Date(row.actualTechApproval)
-                                            .toLocaleDateString("en-GB")
-                                            .replace(/\//g, "-")
-                                        : ""}
-                                    </td>
+                                <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                  {row.plannedCommercialNegotiation
+                                    ? new Date(row.plannedCommercialNegotiation)
+                                        .toLocaleDateString("en-GB")
+                                        .replace(/\//g, "-")
+                                    : ""}
+                                </td>
 
-                                    <td className="px-4 py-2 border-b">
-                                      <select
-                                        className="border p-1 rounded"
-                                        value={statusValue}
-                                        disabled={!canEditTechnical}
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "technicalApprovalStatus",
-                                            e.target.value,
-                                          )
-                                        }
-                                      >
-                                        <option value="">--Select--</option>
-                                        <option value="Hold">Hold</option>
-                                        <option value="Cancelled">
-                                          Cancelled
-                                        </option>
-                                        <option value="Done">Done</option>
-                                        <option value="Reopen">Reopen</option>
-                                      </select>
-                                    </td>
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="date"
+                                    className="border p-1 rounded"
+                                    value={
+                                      row.actualCommercialNegotiation ?? ""
+                                    }
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "actualCommercialNegotiation",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
 
-                                    <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                      {row.timeDelayTechApproval ?? ""}
-                                    </td>
+                                <td className="px-4 py-2 border-b">
+                                  <select
+                                    className="border p-1 rounded"
+                                    value={row.finalizeTermsStatus ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "finalizeTermsStatus",
+                                        e.target.value,
+                                      )
+                                    }
+                                  >
+                                    <option value="">--Select--</option>
+                                    <option value="Hold">Hold</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                    <option value="Done">Done</option>
+                                  </select>
+                                </td>
 
-                                    <td className="px-4 py-2 border-b">
-                                      <textarea
-                                        rows={2}
-                                        className="border p-1 rounded w-full min-w-[180px]"
-                                        value={approverValue}
-                                        disabled={!canEditTechnical}
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "approverName",
-                                            e.target.value,
-                                          )
-                                        }
-                                      />
-                                    </td>
+                                <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                  {row.timeDelayCommercialNegotiation}
+                                </td>
 
-                                    <td className="px-4 py-2 border-b">
-                                      <textarea
-                                        rows={2}
-                                        className="border p-1 rounded w-full min-w-[180px]"
-                                        value={remarksValue}
-                                        disabled={!canEditTechnical}
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "remarksTechApproval",
-                                            e.target.value,
-                                          )
-                                        }
-                                      />
-                                    </td>
-                                  </>
-                                );
-                              })()}
-                            </>
-                          )}
-                          {selectedOption === "Commercial Negotiation" && (
-                            <>
-                              {(() => {
-                                const isPseOrAdmin =
-                                  role === "PSE" || role === "ADMIN";
+                                <td className="px-4 py-2 border-b">
+                                  <select
+                                    className="border p-1 rounded"
+                                    value={row.getApproval ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "getApproval",
+                                        e.target.value,
+                                      )
+                                    }
+                                  >
+                                    <option value="">--Select--</option>
+                                    <option value="Hold">Hold</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                    <option value="Done">Done</option>
+                                  </select>
+                                </td>
 
-                                const dbFinalize =
-                                  row.dbFinalizeTermsStatus ?? "";
-                                const dbApproval = row.dbGetApproval ?? "";
+                                <td className="px-4 py-2 border-b">
+                                  <select
+                                    className="border p-1 rounded"
+                                    value={row.approverName2 ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "approverName2",
+                                        e.target.value,
+                                      )
+                                    }
+                                  >
+                                    <option value="">--Select--</option>
+                                    <option value="Tapan Agarwala">
+                                      Tapan Agarwala
+                                    </option>
+                                    <option value="Rohit Agarwala">
+                                      Rohit Agarwala
+                                    </option>
+                                    <option value="Hiru Ghosh">
+                                      Hiru Ghosh
+                                    </option>
+                                    <option value="Arindam Saha">
+                                      Arindam Saha
+                                    </option>
+                                  </select>
+                                </td>
 
-                                // Row is considered "closed" only if BOTH are Done in DB
-                                const isClosed =
-                                  dbFinalize === "Done" &&
-                                  dbApproval === "Done";
+                                <td className="px-4 py-2 border-b">
+                                  <textarea
+                                    rows={2}
+                                    className="border p-1 rounded w-full min-w-[180px]"
+                                    value={
+                                      row.remarksCommercialNegotiation ?? ""
+                                    }
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "remarksCommercialNegotiation",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
 
-                                // Values (prefer current edited value, else DB)
-                                const finalizeValue =
-                                  row.finalizeTermsStatus ??
-                                  row.dbFinalizeTermsStatus ??
-                                  "";
-                                const approvalValue =
-                                  row.getApproval ?? row.dbGetApproval ?? "";
-                                const approverValue =
-                                  row.approverName2 ??
-                                  row.dbApproverName2 ??
-                                  "";
-                                const remarksValue =
-                                  row.remarksCommercialNegotiation ??
-                                  row.dbRemarksCommercialNegotiation ??
-                                  "";
+                                <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                  {row.plannedPoGeneration
+                                    ? new Date(row.plannedPoGeneration)
+                                        .toLocaleDateString("en-GB")
+                                        .replace(/\//g, "-")
+                                    : ""}
+                                </td>
 
-                                // ✅ Status dropdowns should remain enabled for PSE/ADMIN even when closed
-                                const canEditStatus = isPseOrAdmin;
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="date"
+                                    className="border p-1 rounded"
+                                    value={row.actualPoGeneration ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "actualPoGeneration",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
 
-                                // ✅ Other fields editable only if NOT closed, OR if user already reopened in UI
-                                const isReopenedNow =
-                                  finalizeValue === "Reopen" ||
-                                  approvalValue === "Reopen";
-                                const canEditOtherFields =
-                                  isPseOrAdmin && (!isClosed || isReopenedNow);
+                                <td className="px-4 py-2 border-b">
+                                  <select
+                                    className="border p-1 rounded"
+                                    value={row.poGenerationStatus ?? ""}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      handleFieldChange(
+                                        row._id,
+                                        "poGenerationStatus",
+                                        value,
+                                      );
 
-                                return (
-                                  <>
-                                    <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                      {row.plannedCommercialNegotiation
-                                        ? new Date(
-                                            row.plannedCommercialNegotiation,
-                                          )
-                                            .toLocaleDateString("en-GB")
-                                            .replace(/\//g, "-")
-                                        : ""}
-                                    </td>
+                                      if (value === "Done") {
+                                        const today = new Date();
+                                        const formattedDate = `${String(
+                                          today.getDate(),
+                                        ).padStart(2, "0")}-${String(
+                                          today.getMonth() + 1,
+                                        ).padStart(
+                                          2,
+                                          "0",
+                                        )}-${today.getFullYear()}`;
 
-                                    <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                      {row.actualCommercialNegotiation
-                                        ? new Date(
-                                            row.actualCommercialNegotiation,
-                                          )
-                                            .toLocaleDateString("en-GB")
-                                            .replace(/\//g, "-")
-                                        : ""}
-                                    </td>
-
-                                    {/* Finalize Terms Status */}
-                                    <td className="px-4 py-2 border-b">
-                                      <select
-                                        className="border p-1 rounded"
-                                        value={finalizeValue}
-                                        disabled={!canEditStatus} // ✅ stays enabled for PSE/ADMIN always
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "finalizeTermsStatus",
-                                            e.target.value,
-                                          )
-                                        }
-                                      >
-                                        <option value="">--Select--</option>
-                                        <option value="Hold">Hold</option>
-                                        <option value="Cancelled">
-                                          Cancelled
-                                        </option>
-                                        <option value="Done">Done</option>
-                                        <option value="Reopen">Reopen</option>
-                                      </select>
-                                    </td>
-
-                                    <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                      {row.timeDelayCommercialNegotiation}
-                                    </td>
-
-                                    {/* Get Approval */}
-                                    <td className="px-4 py-2 border-b">
-                                      <select
-                                        className="border p-1 rounded"
-                                        value={approvalValue}
-                                        disabled={!canEditStatus} // ✅ stays enabled for PSE/ADMIN always
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "getApproval",
-                                            e.target.value,
-                                          )
-                                        }
-                                      >
-                                        <option value="">--Select--</option>
-                                        <option value="Hold">Hold</option>
-                                        <option value="Cancelled">
-                                          Cancelled
-                                        </option>
-                                        <option value="Done">Done</option>
-                                        <option value="Reopen">Reopen</option>
-                                      </select>
-                                    </td>
-
-                                    {/* Approver Name */}
-                                    <td className="px-4 py-2 border-b">
-                                      <select
-                                        className="border p-1 rounded"
-                                        value={approverValue}
-                                        disabled={!canEditOtherFields} // ✅ locked when closed unless reopened
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "approverName2",
-                                            e.target.value,
-                                          )
-                                        }
-                                      >
-                                        <option value="">--Select--</option>
-                                        <option value="Tapan Agarwala">
-                                          Tapan Agarwala
-                                        </option>
-                                        <option value="Rohit Agarwala">
-                                          Rohit Agarwala
-                                        </option>
-                                        <option value="Hiru Ghosh">
-                                          Hiru Ghosh
-                                        </option>
-                                        <option value="Arindam Saha">
-                                          Arindam Saha
-                                        </option>
-                                      </select>
-                                    </td>
-
-                                    {/* Remarks */}
-                                    <td className="px-4 py-2 border-b">
-                                      <textarea
-                                        rows={2}
-                                        className="border p-1 rounded w-full min-w-[180px]"
-                                        value={remarksValue}
-                                        disabled={!canEditOtherFields} // ✅ locked when closed unless reopened
-                                        onChange={(e) =>
-                                          handleFieldChange(
-                                            row._id,
-                                            "remarksCommercialNegotiation",
-                                            e.target.value,
-                                          )
-                                        }
-                                      />
-                                    </td>
-                                  </>
-                                );
-                              })()}
-                            </>
-                          )}
-
-                          {/* LOCAL PURCHASE */}
-                          {selectedOption === "Local Purchase" && (
-                            <>
-                              <td className="px-4 py-2 border-b text-center">
-                                <input
-                                  type="checkbox"
-                                  checked={isLpRowSelected(row._id)}
-                                  onChange={() => toggleLpRowSelected(row._id)}
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="date"
-                                  className="w-full border px-2 py-1 rounded"
-                                  value={row.invoiceDate || ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "invoiceDate",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="w-full border px-2 py-1 rounded"
-                                  placeholder="Invoice No"
-                                  value={row.invoiceNumber || ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "invoiceNumber",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="w-full border px-2 py-1 rounded"
-                                  value={row.vendorName || ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "vendorName",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <select
-                                  className="w-full border px-2 py-1 rounded"
-                                  value={row.modeOfTransport || ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "modeOfTransport",
-                                      e.target.value,
-                                    )
-                                  }
-                                >
-                                  <option value="">--Select--</option>
-                                  <option value="By Hand">By Hand</option>
-                                  <option value="By Transport">
-                                    By Transport
-                                  </option>
-                                </select>
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="w-full border px-2 py-1 rounded"
-                                  placeholder="Transporter"
-                                  value={row.transporterName || ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "transporterName",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-
-                              <td className="px-4 py-2 border-b">
-                                <textarea
-                                  rows={2}
-                                  className="w-full border px-2 py-1 rounded min-w-[180px]"
-                                  value={row.remarks || ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "remarks",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-                            </>
-                          )}
-                          {selectedOption === "PO Generation" &&
-                            (() => {
-                              // ✅ prereqs (use UI first, fallback to DB)
-                              const finalizeStatus = (
-                                row.finalizeTermsStatus ??
-                                row.dbFinalizeTermsStatus ??
-                                ""
-                              ).toString();
-                              const approvalStatus = (
-                                row.getApproval ??
-                                row.dbGetApproval ??
-                                ""
-                              ).toString();
-
-                              const finalizeDone = finalizeStatus === "Done";
-                              const approvalDone = approvalStatus === "Done";
-
-                              // ✅ current db status (use UI first, fallback to DB)
-                              const dbPoStatus = (
-                                row.dbPoGenerationStatus ?? ""
-                              ).toString();
-                              const isPoAlreadyDone = dbPoStatus === "Done";
-
-                              // ✅ allow PA + ADMIN only
-                              const hasRole = role === "PA" || role === "ADMIN";
-
-                              // ✅ final edit flag
-                              const canEdit =
-                                hasRole &&
-                                finalizeDone &&
-                                approvalDone &&
-                                !isPoAlreadyDone;
-
-                              const poStatusValue = dbPoStatus;
-
-                              return (
-                                <>
-                                  <td className="px-4 py-2 border-b">
-                                    <input
-                                      type="checkbox"
-                                      checked={isPoRowSelected(row._id)}
-                                      disabled={!canEdit}
-                                      onChange={() =>
-                                        togglePoRowSelected(row._id)
-                                      }
-                                    />
-                                  </td>
-                                  <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                    {row.plannedPoGeneration
-                                      ? new Date(row.plannedPoGeneration)
-                                          .toLocaleDateString("en-GB")
-                                          .replace(/\//g, "-")
-                                      : ""}
-                                  </td>
-
-                                  <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                    {row.actualPoGeneration
-                                      ? new Date(row.actualPoGeneration)
-                                          .toLocaleDateString("en-GB")
-                                          .replace(/\//g, "-")
-                                      : ""}
-                                  </td>
-
-                                  <td className="px-4 py-2 border-b">
-                                    <select
-                                      className="border p-1 rounded"
-                                      value={poStatusValue}
-                                      disabled={!canEdit}
-                                      onChange={(e) =>
-                                        handleFieldChange(
-                                          row._id,
-                                          "poGenerationStatus",
-                                          e.target.value,
-                                        )
-                                      }
-                                    >
-                                      <option value="">--Select--</option>
-                                      <option value="Hold">Hold</option>
-                                      <option value="Cancelled">
-                                        Cancelled
-                                      </option>
-                                      <option value="Done">Done</option>
-                                    </select>
-                                  </td>
-
-                                  <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                    {row.timeDelayPoGeneration ?? ""}
-                                  </td>
-
-                                  <td className="px-4 py-2 border-b">
-                                    <input
-                                      type="date"
-                                      className="border p-1 rounded"
-                                      value={row.poDate ?? ""}
-                                      disabled={!canEdit}
-                                      onChange={(e) =>
                                         handleFieldChange(
                                           row._id,
                                           "poDate",
-                                          e.target.value,
-                                        )
-                                      }
-                                    />
-                                  </td>
-
-                                  <td className="px-4 py-2 border-b">
-                                    <input
-                                      type="text"
-                                      className="border p-1 rounded"
-                                      value={row.poNumber ?? ""}
-                                      disabled={!canEdit}
-                                      onChange={(e) =>
+                                          formattedDate,
+                                        );
+                                      } else {
                                         handleFieldChange(
                                           row._id,
-                                          "poNumber",
-                                          e.target.value,
-                                        )
+                                          "poDate",
+                                          "",
+                                        );
                                       }
-                                    />
-                                  </td>
+                                    }}
+                                  >
+                                    <option value="">--Select--</option>
+                                    <option value="Hold">Hold</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                    <option value="Done">Done</option>
+                                  </select>
+                                </td>
 
-                                  <td className="px-4 py-2 border-b">
-                                    {(() => {
-                                      const hasUploadRole =
-                                        role === "ADMIN" ||
-                                        role === "PSE" ||
-                                        role === "PA";
-                                      const alreadyUploaded = Boolean(
-                                        row.poPdfWebViewLink,
-                                      );
-                                      const canReupload =
-                                        role === "ADMIN" || role === "PSE";
-                                      const canUpload =
-                                        hasUploadRole &&
-                                        (canReupload || !alreadyUploaded);
-                                      return (
+                                <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                  {row.timeDelayPoGeneration}
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="date"
+                                    className="border p-1 rounded"
+                                    value={row.poDate ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "poDate",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="text"
+                                    className="border p-1 rounded"
+                                    value={row.poNumber ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "poNumber",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  {(() => {
+                                    const hasUploadRole =
+                                      role === "ADMIN" ||
+                                      role === "PSE" ||
+                                      role === "PA";
+                                    const alreadyUploaded = Boolean(
+                                      row.poPdfWebViewLink,
+                                    );
+                                    const canReupload =
+                                      role === "ADMIN" || role === "PSE";
+                                    const canUpload =
+                                      hasUploadRole &&
+                                      (canReupload || !alreadyUploaded);
+                                    return (
+                                      <div className="flex flex-col gap-1">
                                         <input
                                           type="file"
                                           accept="application/pdf"
@@ -4402,465 +3632,1336 @@ export default function PurchasePage() {
                                             e.target.value = "";
                                           }}
                                         />
-                                      );
-                                    })()}
-                                  </td>
-
-                                  <td className="px-4 py-2 border-b">
-                                    {row.poPdfWebViewLink ? (
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          window.open(
-                                            row.poPdfWebViewLink,
-                                            "_blank",
-                                          )
-                                        }
-                                        disabled={uploadingPoRowId === row._id}
-                                        className="btn btn-sm btn-warning"
-                                      >
-                                        Show PO
-                                      </button>
-                                    ) : (
-                                      <span style={{ color: "#888" }}>
-                                        No PO
-                                      </span>
-                                    )}
-                                  </td>
-
-                                  <td className="px-4 py-2 border-b">
-                                    <input
-                                      type="text"
-                                      className="border p-1 rounded"
-                                      value={row.vendorName ?? ""}
-                                      disabled={!canEdit}
-                                      onChange={(e) =>
-                                        handleFieldChange(
-                                          row._id,
-                                          "vendorName",
-                                          e.target.value,
-                                        )
-                                      }
-                                    />
-                                  </td>
-
-                                  <td className="px-4 py-2 border-b">
-                                    <input
-                                      type="number"
-                                      className="border p-1 rounded"
-                                      value={row.leadDays ?? ""}
-                                      disabled={!canEdit}
-                                      onChange={(e) =>
-                                        handleFieldChange(
-                                          row._id,
-                                          "leadDays",
-                                          e.target.value,
-                                        )
-                                      }
-                                    />
-                                  </td>
-
-                                  <td className="px-4 py-2 border-b">
-                                    <input
-                                      type="number"
-                                      className="border p-1 rounded"
-                                      value={row.amount ?? ""}
-                                      disabled={!canEdit}
-                                      onChange={(e) =>
-                                        handleFieldChange(
-                                          row._id,
-                                          "amount",
-                                          e.target.value,
-                                        )
-                                      }
-                                    />
-                                  </td>
-
-                                  <td className="px-4 py-2 border-b">
-                                    <select
-                                      className="border p-1 rounded"
-                                      value={row.paymentCondition ?? ""}
-                                      disabled={!canEdit}
-                                      onChange={(e) =>
-                                        handleFieldChange(
-                                          row._id,
-                                          "paymentCondition",
-                                          e.target.value,
-                                        )
-                                      }
-                                    >
-                                      <option value="">--Select--</option>
-                                      <option value="After Received">
-                                        After Received
-                                      </option>
-                                      <option value="Before Dispatch">
-                                        Before Dispatch
-                                      </option>
-                                      <option value="PWP BBD">PWP BBD</option>
-                                      <option value="PWP BBD FAR">
-                                        PWP BBD FAR
-                                      </option>
-                                      <option value="PWP BBD PAPW">
-                                        PWP BBD PAPW
-                                      </option>
-                                      <option value="PAPW">PAPW</option>
-                                    </select>
-
-                                    {String(row.paymentCondition || "")
-                                      .toUpperCase()
-                                      .includes("PAPW") && (
-                                      <div className="mt-1">
-                                        <select
-                                          className="border p-1 rounded w-full"
-                                          value={row.papwDays ?? ""}
-                                          disabled={!canEdit}
-                                          onChange={(e) =>
-                                            handleFieldChange(
-                                              row._id,
-                                              "papwDays",
-                                              parseOptionalNumber(
-                                                e.target.value,
-                                              ),
-                                            )
-                                          }
-                                        >
-                                          <option value="">
-                                            --PAPW Days--
-                                          </option>
-                                          <option value={15}>15</option>
-                                          <option value={30}>30</option>
-                                          <option value={45}>45</option>
-                                          <option value={60}>60</option>
-                                          <option value={75}>75</option>
-                                          <option value={90}>90</option>
-                                        </select>
+                                        {alreadyUploaded && (
+                                          <span className="text-xs text-green-700 font-semibold">
+                                            Uploaded
+                                          </span>
+                                        )}
                                       </div>
-                                    )}
-                                  </td>
+                                    );
+                                  })()}
+                                </td>
 
-                                  <td className="px-4 py-2 border-b">
-                                    <textarea
-                                      rows={2}
-                                      className="border p-1 rounded w-full min-w-[180px]"
-                                      value={row.remarksPoGeneration ?? ""}
-                                      disabled={!canEdit}
-                                      onChange={(e) =>
-                                        handleFieldChange(
-                                          row._id,
-                                          "remarksPoGeneration",
-                                          e.target.value,
+                                <td className="px-4 py-2 border-b">
+                                  {row.poPdfWebViewLink ? (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        window.open(
+                                          row.poPdfWebViewLink,
+                                          "_blank",
                                         )
                                       }
-                                    />
-                                  </td>
-                                </>
-                              );
-                            })()}
+                                      disabled={uploadingPoRowId === row._id}
+                                      className="btn btn-sm btn-warning ring-2 ring-yellow-400 font-semibold"
+                                    >
+                                      Show PO
+                                    </button>
+                                  ) : (
+                                    <span style={{ color: "#888" }}>No PO</span>
+                                  )}
+                                </td>
 
-                          {/* PC Follow Up */}
-                          {((selectedOption === "PC Follow Up" && pcIndex) ||
-                            (selectedOption === "Payment Follow Up" &&
-                              paymentKey)) && (
-                            <>
-                              {/* Common fields */}
-                              <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                {row.poDate
-                                  ? new Date(row.poDate)
-                                      .toLocaleDateString("en-GB")
-                                      .replace(/\//g, "-")
-                                  : ""}
-                              </td>
-                              <td className="px-4 py-2 border-b">
-                                {row.poNumber}
-                              </td>
-                              <td className="px-4 py-2 border-b">
-                                {(() => {
-                                  const hasUploadRole =
-                                    role === "ADMIN" ||
-                                    role === "PSE" ||
-                                    role === "PA";
-                                  const alreadyUploaded = Boolean(
-                                    row.poPdfWebViewLink,
-                                  );
-                                  const canReupload =
-                                    role === "ADMIN" || role === "PSE";
-                                  const canUpload =
-                                    hasUploadRole &&
-                                    (canReupload || !alreadyUploaded);
-                                  return (
-                                    <input
-                                      type="file"
-                                      accept="application/pdf"
-                                      disabled={
-                                        !canUpload ||
-                                        uploadingPoRowId === row._id
-                                      }
-                                      onChange={(e) => {
-                                        const f = e.target.files?.[0];
-                                        if (!f) return;
-                                        handlePoUpload(row._id, f);
-                                        e.target.value = "";
-                                      }}
-                                    />
-                                  );
-                                })()}
-                              </td>
-                              <td className="px-4 py-2 border-b">
-                                {row.poPdfWebViewLink ? (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      window.open(
-                                        row.poPdfWebViewLink,
-                                        "_blank",
-                                      )
-                                    }
-                                    disabled={uploadingPoRowId === row._id}
-                                    className="btn btn-sm btn-warning"
-                                  >
-                                    Show PO
-                                  </button>
-                                ) : (
-                                  <span style={{ color: "#888" }}>No PO</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-2 border-b">
-                                {row.vendorName}
-                              </td>
-                              <td className="px-4 py-2 border-b">
-                                {row.leadDays}
-                              </td>
-                              <td className="px-4 py-2 border-b">
-                                {row.paymentCondition}
-                              </td>
-
-                              {/* Transaction Number (Payment Follow Up only) */}
-                              {selectedOption === "Payment Follow Up" && (
                                 <td className="px-4 py-2 border-b">
                                   <input
                                     type="text"
                                     className="border p-1 rounded"
-                                    value={
-                                      row[
-                                        `transactionNoPayment${paymentKey}`
-                                      ] ?? ""
-                                    }
+                                    value={row.vendorName ?? ""}
                                     onChange={(e) =>
                                       handleFieldChange(
                                         row._id,
-                                        `transactionNoPayment${paymentKey}`,
+                                        "vendorName",
                                         e.target.value,
                                       )
                                     }
                                   />
                                 </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="number"
+                                    className="border p-1 rounded"
+                                    value={row.leadDays ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "leadDays",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="number"
+                                    className="border p-1 rounded"
+                                    value={row.amount ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "amount",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="text"
+                                    className="border p-1 rounded w-full"
+                                    value={row.applicationArea ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "applicationArea",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <select
+                                    className="border p-1 rounded w-full"
+                                    value={row.oldMaterialStatus ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "oldMaterialStatus",
+                                        e.target.value,
+                                      )
+                                    }
+                                  >
+                                    <option value="">Select</option>
+                                    <option value="YES">YES</option>
+                                    <option value="NO">NO</option>
+                                  </select>
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="text"
+                                    className="border p-1 rounded w-full"
+                                    value={row.orderApprovedBy ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "orderApprovedBy",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <select
+                                    className="border p-1 rounded"
+                                    value={row.paymentCondition ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "paymentCondition",
+                                        e.target.value,
+                                      )
+                                    }
+                                  >
+                                    <option value="">--Select--</option>
+                                    <option value="After Received">
+                                      After Received
+                                    </option>
+                                    <option value="Before Dispatch">
+                                      Before Dispatch
+                                    </option>
+                                    <option value="PWP BBD">PWP BBD</option>
+                                    <option value="PWP BBD FAR">
+                                      PWP BBD FAR
+                                    </option>
+                                    <option value="PWP BBD PAPW">
+                                      PWP BBD PAPW
+                                    </option>
+                                    <option value="PAPW">PAPW</option>
+                                  </select>
+
+                                  {String(row.paymentCondition || "")
+                                    .toUpperCase()
+                                    .includes("PAPW") && (
+                                    <div className="mt-1">
+                                      <select
+                                        className="border p-1 rounded w-full"
+                                        value={row.papwDays ?? ""}
+                                        onChange={(e) =>
+                                          handleFieldChange(
+                                            row._id,
+                                            "papwDays",
+                                            parseOptionalNumber(e.target.value),
+                                          )
+                                        }
+                                      >
+                                        <option value="">--PAPW Days--</option>
+                                        <option value={15}>15</option>
+                                        <option value={30}>30</option>
+                                        <option value={45}>45</option>
+                                        <option value={60}>60</option>
+                                        <option value={75}>75</option>
+                                        <option value={90}>90</option>
+                                      </select>
+                                    </div>
+                                  )}
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <textarea
+                                    rows={2}
+                                    className="border p-1 rounded w-full min-w-[180px]"
+                                    value={row.remarksPoGeneration ?? ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "remarksPoGeneration",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+                              </>
+                            )}
+                            {selectedOption === "Get Quotation" &&
+                              row.doerName !== "" &&
+                              ((row.dbDoerStatus ?? "") !== "Done" ||
+                                (row.dbComparisonStatementStatus ?? "") !==
+                                  "Done") && (
+                                <>
+                                  {/* Planned Date (read-only) */}
+                                  <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                    {formatDDMMYYYY(row.plannedGetQuotation)}
+                                  </td>
+
+                                  {/* Actual Date */}
+                                  <td className="px-4 py-2 border-b">
+                                    <input
+                                      type="date"
+                                      className="border p-1 rounded"
+                                      value={row.actualGetQuotation ?? ""}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          row._id,
+                                          "actualGetQuotation",
+                                          e.target.value,
+                                        )
+                                      }
+                                    />
+                                  </td>
+
+                                  {/* Send for Get Quotation */}
+                                  <td className="px-4 py-2 border-b">
+                                    <select
+                                      className="border p-1 rounded"
+                                      value={row.quotationStatus ?? ""}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          row._id,
+                                          "quotationStatus",
+                                          e.target.value,
+                                        )
+                                      }
+                                    >
+                                      <option value="">--Select--</option>
+                                      <option value="Inquiry Send">
+                                        Inquiry Send
+                                      </option>
+                                      <option value="Hold">Hold</option>
+                                      <option value="Cancelled">
+                                        Cancelled
+                                      </option>
+                                    </select>
+                                  </td>
+
+                                  {/* Doer Status */}
+                                  <td className="px-4 py-2 border-b">
+                                    <select
+                                      className="border p-1 rounded"
+                                      value={row.doerStatus ?? ""}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          row._id,
+                                          "doerStatus",
+                                          e.target.value,
+                                        )
+                                      }
+                                    >
+                                      <option value="">--Select--</option>
+                                      <option value="Done">Done</option>
+                                    </select>
+                                  </td>
+
+                                  {/* Time Delay (read-only) */}
+                                  <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                    {row.timeDelayGetQuotation ?? ""}
+                                  </td>
+
+                                  {/* Remarks */}
+                                  <td className="px-4 py-2 border-b">
+                                    <textarea
+                                      rows={2}
+                                      className="border p-1 rounded w-full min-w-[180px]"
+                                      value={row.remarksGetQuotation ?? ""}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          row._id,
+                                          "remarksGetQuotation",
+                                          e.target.value,
+                                        )
+                                      }
+                                    />
+                                  </td>
+
+                                  {/* 📤 UPLOAD GET QUOTATION PDF */}
+                                  <td className="px-4 py-2 border-b">
+                                    <input
+                                      type="file"
+                                      accept="application/pdf"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          handlePdfUpload(row._id, file); // ✅ SAME function
+                                        }
+                                      }}
+                                    />
+                                  </td>
+
+                                  {/* 🔗 SHOW GET QUOTATION PDF */}
+                                  <td className="px-4 py-2 border-b text-center">
+                                    {row.getQuotationPdfWebViewLink ||
+                                    pdfPreview[row._id] ? (
+                                      <a
+                                        href={
+                                          row.getQuotationPdfWebViewLink ||
+                                          pdfPreview[row._id]
+                                        }
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 underline"
+                                      >
+                                        View PDF
+                                      </a>
+                                    ) : (
+                                      <span className="text-gray-400">
+                                        No PDF
+                                      </span>
+                                    )}
+                                  </td>
+                                </>
                               )}
+                            {selectedOption === "Technical Approval" && (
+                              <>
+                                {(() => {
+                                  // ✅ Status currently (prefer live edited value, fallback to DB snapshot)
+                                  // Status currently (prefer live edited value, fallback to DB snapshot)
+                                  const dbTechStatus =
+                                    row.dbTechnicalApprovalStatus ?? "";
+                                  const isTechAlreadyDone =
+                                    dbTechStatus === "Done"; // lock only if already saved as Done in DB
 
-                              {/* Planned */}
-                              <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
-                                {(
-                                  selectedOption === "PC Follow Up"
-                                    ? row[`plannedPCFollowUp${pcIndex}`]
-                                    : row[`plannedPayment${paymentKey}`]
-                                )
-                                  ? new Date(
-                                      selectedOption === "PC Follow Up"
-                                        ? row[`plannedPCFollowUp${pcIndex}`]
-                                        : row[`plannedPayment${paymentKey}`],
-                                    )
-                                      .toLocaleDateString("en-GB")
-                                      .replace(/\//g, "-")
-                                  : ""}
-                              </td>
+                                  // Editable only for PSE / ADMIN and only if not already Done
+                                  const canEditTechnical =
+                                    (role === "PSE" || role === "ADMIN") &&
+                                    !isTechAlreadyDone;
 
-                              {/* Actual */}
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="date"
-                                  className="border p-1 rounded"
-                                  value={
+                                  const statusValue = (
+                                    row.technicalApprovalStatus ??
+                                    row.dbTechnicalApprovalStatus ??
+                                    ""
+                                  ).toString();
+                                  const approverValue = (
+                                    row.approverName ??
+                                    row.dbApproverName ??
+                                    ""
+                                  ).toString();
+                                  const remarksValue = (
+                                    row.remarksTechApproval ??
+                                    row.dbRemarksTechApproval ??
+                                    ""
+                                  ).toString();
+
+                                  return (
+                                    <>
+                                      <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                        {row.plannedTechApproval
+                                          ? new Date(row.plannedTechApproval)
+                                              .toLocaleDateString("en-GB")
+                                              .replace(/\//g, "-")
+                                          : ""}
+                                      </td>
+
+                                      <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                        {row.actualTechApproval
+                                          ? new Date(row.actualTechApproval)
+                                              .toLocaleDateString("en-GB")
+                                              .replace(/\//g, "-")
+                                          : ""}
+                                      </td>
+
+                                      <td className="px-4 py-2 border-b">
+                                        <select
+                                          className="border p-1 rounded"
+                                          value={statusValue}
+                                          disabled={!canEditTechnical}
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "technicalApprovalStatus",
+                                              e.target.value,
+                                            )
+                                          }
+                                        >
+                                          <option value="">--Select--</option>
+                                          <option value="Hold">Hold</option>
+                                          <option value="Cancelled">
+                                            Cancelled
+                                          </option>
+                                          <option value="Done">Done</option>
+                                          <option value="Reopen">Reopen</option>
+                                        </select>
+                                      </td>
+
+                                      <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                        {row.timeDelayTechApproval ?? ""}
+                                      </td>
+
+                                      <td className="px-4 py-2 border-b">
+                                        <textarea
+                                          rows={2}
+                                          className="border p-1 rounded w-full min-w-[180px]"
+                                          value={approverValue}
+                                          disabled={!canEditTechnical}
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "approverName",
+                                              e.target.value,
+                                            )
+                                          }
+                                        />
+                                      </td>
+
+                                      <td className="px-4 py-2 border-b">
+                                        <textarea
+                                          rows={2}
+                                          className="border p-1 rounded w-full min-w-[180px]"
+                                          value={remarksValue}
+                                          disabled={!canEditTechnical}
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "remarksTechApproval",
+                                              e.target.value,
+                                            )
+                                          }
+                                        />
+                                      </td>
+                                    </>
+                                  );
+                                })()}
+                              </>
+                            )}
+                            {selectedOption === "Commercial Negotiation" && (
+                              <>
+                                {(() => {
+                                  const isPseOrAdmin =
+                                    role === "PSE" || role === "ADMIN";
+
+                                  const dbFinalize =
+                                    row.dbFinalizeTermsStatus ?? "";
+                                  const dbApproval = row.dbGetApproval ?? "";
+
+                                  // Row is considered "closed" only if BOTH are Done in DB
+                                  const isClosed =
+                                    dbFinalize === "Done" &&
+                                    dbApproval === "Done";
+
+                                  // Values (prefer current edited value, else DB)
+                                  const finalizeValue =
+                                    row.finalizeTermsStatus ??
+                                    row.dbFinalizeTermsStatus ??
+                                    "";
+                                  const approvalValue =
+                                    row.getApproval ?? row.dbGetApproval ?? "";
+                                  const approverValue =
+                                    row.approverName2 ??
+                                    row.dbApproverName2 ??
+                                    "";
+                                  const remarksValue =
+                                    row.remarksCommercialNegotiation ??
+                                    row.dbRemarksCommercialNegotiation ??
+                                    "";
+
+                                  // ✅ Status dropdowns should remain enabled for PSE/ADMIN even when closed
+                                  const canEditStatus = isPseOrAdmin;
+
+                                  // ✅ Other fields editable only if NOT closed, OR if user already reopened in UI
+                                  const isReopenedNow =
+                                    finalizeValue === "Reopen" ||
+                                    approvalValue === "Reopen";
+                                  const canEditOtherFields =
+                                    isPseOrAdmin &&
+                                    (!isClosed || isReopenedNow);
+
+                                  return (
+                                    <>
+                                      <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                        {row.plannedCommercialNegotiation
+                                          ? new Date(
+                                              row.plannedCommercialNegotiation,
+                                            )
+                                              .toLocaleDateString("en-GB")
+                                              .replace(/\//g, "-")
+                                          : ""}
+                                      </td>
+
+                                      <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                        {row.actualCommercialNegotiation
+                                          ? new Date(
+                                              row.actualCommercialNegotiation,
+                                            )
+                                              .toLocaleDateString("en-GB")
+                                              .replace(/\//g, "-")
+                                          : ""}
+                                      </td>
+
+                                      {/* Finalize Terms Status */}
+                                      <td className="px-4 py-2 border-b">
+                                        <select
+                                          className="border p-1 rounded"
+                                          value={finalizeValue}
+                                          disabled={!canEditStatus} // ✅ stays enabled for PSE/ADMIN always
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "finalizeTermsStatus",
+                                              e.target.value,
+                                            )
+                                          }
+                                        >
+                                          <option value="">--Select--</option>
+                                          <option value="Hold">Hold</option>
+                                          <option value="Cancelled">
+                                            Cancelled
+                                          </option>
+                                          <option value="Done">Done</option>
+                                          <option value="Reopen">Reopen</option>
+                                        </select>
+                                      </td>
+
+                                      <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                        {row.timeDelayCommercialNegotiation}
+                                      </td>
+
+                                      {/* Get Approval */}
+                                      <td className="px-4 py-2 border-b">
+                                        <select
+                                          className="border p-1 rounded"
+                                          value={approvalValue}
+                                          disabled={!canEditStatus} // ✅ stays enabled for PSE/ADMIN always
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "getApproval",
+                                              e.target.value,
+                                            )
+                                          }
+                                        >
+                                          <option value="">--Select--</option>
+                                          <option value="Hold">Hold</option>
+                                          <option value="Cancelled">
+                                            Cancelled
+                                          </option>
+                                          <option value="Done">Done</option>
+                                          <option value="Reopen">Reopen</option>
+                                        </select>
+                                      </td>
+
+                                      {/* Approver Name */}
+                                      <td className="px-4 py-2 border-b">
+                                        <select
+                                          className="border p-1 rounded"
+                                          value={approverValue}
+                                          disabled={!canEditOtherFields} // ✅ locked when closed unless reopened
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "approverName2",
+                                              e.target.value,
+                                            )
+                                          }
+                                        >
+                                          <option value="">--Select--</option>
+                                          <option value="Tapan Agarwala">
+                                            Tapan Agarwala
+                                          </option>
+                                          <option value="Rohit Agarwala">
+                                            Rohit Agarwala
+                                          </option>
+                                          <option value="Hiru Ghosh">
+                                            Hiru Ghosh
+                                          </option>
+                                          <option value="Arindam Saha">
+                                            Arindam Saha
+                                          </option>
+                                        </select>
+                                      </td>
+
+                                      {/* Remarks */}
+                                      <td className="px-4 py-2 border-b">
+                                        <textarea
+                                          rows={2}
+                                          className="border p-1 rounded w-full min-w-[180px]"
+                                          value={remarksValue}
+                                          disabled={!canEditOtherFields} // ✅ locked when closed unless reopened
+                                          onChange={(e) =>
+                                            handleFieldChange(
+                                              row._id,
+                                              "remarksCommercialNegotiation",
+                                              e.target.value,
+                                            )
+                                          }
+                                        />
+                                      </td>
+                                    </>
+                                  );
+                                })()}
+                              </>
+                            )}
+
+                            {/* LOCAL PURCHASE */}
+                            {selectedOption === "Local Purchase" && (
+                              <>
+                                <td className="px-4 py-2 border-b text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={isLpRowSelected(row._id)}
+                                    onChange={() =>
+                                      toggleLpRowSelected(row._id)
+                                    }
+                                  />
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="date"
+                                    className="w-full border px-2 py-1 rounded"
+                                    value={row.invoiceDate || ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "invoiceDate",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="text"
+                                    className="w-full border px-2 py-1 rounded"
+                                    placeholder="Invoice No"
+                                    value={row.invoiceNumber || ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "invoiceNumber",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="text"
+                                    className="w-full border px-2 py-1 rounded"
+                                    value={row.vendorName || ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "vendorName",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <select
+                                    className="w-full border px-2 py-1 rounded"
+                                    value={row.modeOfTransport || ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "modeOfTransport",
+                                        e.target.value,
+                                      )
+                                    }
+                                  >
+                                    <option value="">--Select--</option>
+                                    <option value="By Hand">By Hand</option>
+                                    <option value="By Transport">
+                                      By Transport
+                                    </option>
+                                  </select>
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="text"
+                                    className="w-full border px-2 py-1 rounded"
+                                    placeholder="Transporter"
+                                    value={row.transporterName || ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "transporterName",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+
+                                <td className="px-4 py-2 border-b">
+                                  <textarea
+                                    rows={2}
+                                    className="w-full border px-2 py-1 rounded min-w-[180px]"
+                                    value={row.remarks || ""}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "remarks",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+                              </>
+                            )}
+                            {selectedOption === "PO Generation" &&
+                              (() => {
+                                // ✅ prereqs (use UI first, fallback to DB)
+                                const finalizeStatus = (
+                                  row.finalizeTermsStatus ??
+                                  row.dbFinalizeTermsStatus ??
+                                  ""
+                                ).toString();
+                                const approvalStatus = (
+                                  row.getApproval ??
+                                  row.dbGetApproval ??
+                                  ""
+                                ).toString();
+
+                                const finalizeDone = finalizeStatus === "Done";
+                                const approvalDone = approvalStatus === "Done";
+
+                                // ✅ current db status (use UI first, fallback to DB)
+                                const dbPoStatus = (
+                                  row.dbPoGenerationStatus ?? ""
+                                ).toString();
+                                const isPoAlreadyDone = dbPoStatus === "Done";
+
+                                // ✅ allow PA + ADMIN only
+                                const hasRole =
+                                  role === "PA" || role === "ADMIN";
+
+                                // ✅ final edit flag
+                                const canEdit =
+                                  hasRole &&
+                                  finalizeDone &&
+                                  approvalDone &&
+                                  !isPoAlreadyDone;
+
+                                const poStatusValue = dbPoStatus;
+
+                                return (
+                                  <>
+                                    <td className="px-4 py-2 border-b">
+                                      <input
+                                        type="checkbox"
+                                        checked={isPoRowSelected(row._id)}
+                                        disabled={!canEdit}
+                                        onChange={() =>
+                                          togglePoRowSelected(row._id)
+                                        }
+                                      />
+                                    </td>
+                                    <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                      {row.plannedPoGeneration
+                                        ? new Date(row.plannedPoGeneration)
+                                            .toLocaleDateString("en-GB")
+                                            .replace(/\//g, "-")
+                                        : ""}
+                                    </td>
+
+                                    <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                      {row.actualPoGeneration
+                                        ? new Date(row.actualPoGeneration)
+                                            .toLocaleDateString("en-GB")
+                                            .replace(/\//g, "-")
+                                        : ""}
+                                    </td>
+
+                                    <td className="px-4 py-2 border-b">
+                                      <select
+                                        className="border p-1 rounded"
+                                        value={poStatusValue}
+                                        disabled={!canEdit}
+                                        onChange={(e) =>
+                                          handleFieldChange(
+                                            row._id,
+                                            "poGenerationStatus",
+                                            e.target.value,
+                                          )
+                                        }
+                                      >
+                                        <option value="">--Select--</option>
+                                        <option value="Hold">Hold</option>
+                                        <option value="Cancelled">
+                                          Cancelled
+                                        </option>
+                                        <option value="Done">Done</option>
+                                      </select>
+                                    </td>
+
+                                    <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                      {row.timeDelayPoGeneration ?? ""}
+                                    </td>
+
+                                    <td className="px-4 py-2 border-b">
+                                      <input
+                                        type="date"
+                                        className="border p-1 rounded"
+                                        value={row.poDate ?? ""}
+                                        disabled={!canEdit}
+                                        onChange={(e) =>
+                                          handleFieldChange(
+                                            row._id,
+                                            "poDate",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                    </td>
+
+                                    <td className="px-4 py-2 border-b">
+                                      <input
+                                        type="text"
+                                        className="border p-1 rounded"
+                                        value={row.poNumber ?? ""}
+                                        disabled={!canEdit}
+                                        onChange={(e) =>
+                                          handleFieldChange(
+                                            row._id,
+                                            "poNumber",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                    </td>
+
+                                    <td className="px-4 py-2 border-b">
+                                      {(() => {
+                                        const hasUploadRole =
+                                          role === "ADMIN" ||
+                                          role === "PSE" ||
+                                          role === "PA";
+                                        const alreadyUploaded = Boolean(
+                                          row.poPdfWebViewLink,
+                                        );
+                                        const canReupload =
+                                          role === "ADMIN" || role === "PSE";
+                                        const canUpload =
+                                          hasUploadRole &&
+                                          (canReupload || !alreadyUploaded);
+                                        return (
+                                          <input
+                                            type="file"
+                                            accept="application/pdf"
+                                            disabled={
+                                              !canUpload ||
+                                              uploadingPoRowId === row._id
+                                            }
+                                            onChange={(e) => {
+                                              const f = e.target.files?.[0];
+                                              if (!f) return;
+                                              handlePoUpload(row._id, f);
+                                              e.target.value = "";
+                                            }}
+                                          />
+                                        );
+                                      })()}
+                                    </td>
+
+                                    <td className="px-4 py-2 border-b">
+                                      {row.poPdfWebViewLink ? (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            window.open(
+                                              row.poPdfWebViewLink,
+                                              "_blank",
+                                            )
+                                          }
+                                          disabled={
+                                            uploadingPoRowId === row._id
+                                          }
+                                          className="btn btn-sm btn-warning"
+                                        >
+                                          Show PO
+                                        </button>
+                                      ) : (
+                                        <span style={{ color: "#888" }}>
+                                          No PO
+                                        </span>
+                                      )}
+                                    </td>
+
+                                    <td className="px-4 py-2 border-b">
+                                      <input
+                                        type="text"
+                                        className="border p-1 rounded"
+                                        value={row.vendorName ?? ""}
+                                        disabled={!canEdit}
+                                        onChange={(e) =>
+                                          handleFieldChange(
+                                            row._id,
+                                            "vendorName",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                    </td>
+
+                                    <td className="px-4 py-2 border-b">
+                                      <input
+                                        type="number"
+                                        className="border p-1 rounded"
+                                        value={row.leadDays ?? ""}
+                                        disabled={!canEdit}
+                                        onChange={(e) =>
+                                          handleFieldChange(
+                                            row._id,
+                                            "leadDays",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                    </td>
+
+                                    <td className="px-4 py-2 border-b">
+                                      <input
+                                        type="number"
+                                        className="border p-1 rounded"
+                                        value={row.amount ?? ""}
+                                        disabled={!canEdit}
+                                        onChange={(e) =>
+                                          handleFieldChange(
+                                            row._id,
+                                            "amount",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                    </td>
+
+                                    <td className="px-4 py-2 border-b">
+                                      <select
+                                        className="border p-1 rounded"
+                                        value={row.paymentCondition ?? ""}
+                                        disabled={!canEdit}
+                                        onChange={(e) =>
+                                          handleFieldChange(
+                                            row._id,
+                                            "paymentCondition",
+                                            e.target.value,
+                                          )
+                                        }
+                                      >
+                                        <option value="">--Select--</option>
+                                        <option value="After Received">
+                                          After Received
+                                        </option>
+                                        <option value="Before Dispatch">
+                                          Before Dispatch
+                                        </option>
+                                        <option value="PWP BBD">PWP BBD</option>
+                                        <option value="PWP BBD FAR">
+                                          PWP BBD FAR
+                                        </option>
+                                        <option value="PWP BBD PAPW">
+                                          PWP BBD PAPW
+                                        </option>
+                                        <option value="PAPW">PAPW</option>
+                                      </select>
+
+                                      {String(row.paymentCondition || "")
+                                        .toUpperCase()
+                                        .includes("PAPW") && (
+                                        <div className="mt-1">
+                                          <select
+                                            className="border p-1 rounded w-full"
+                                            value={row.papwDays ?? ""}
+                                            disabled={!canEdit}
+                                            onChange={(e) =>
+                                              handleFieldChange(
+                                                row._id,
+                                                "papwDays",
+                                                parseOptionalNumber(
+                                                  e.target.value,
+                                                ),
+                                              )
+                                            }
+                                          >
+                                            <option value="">
+                                              --PAPW Days--
+                                            </option>
+                                            <option value={15}>15</option>
+                                            <option value={30}>30</option>
+                                            <option value={45}>45</option>
+                                            <option value={60}>60</option>
+                                            <option value={75}>75</option>
+                                            <option value={90}>90</option>
+                                          </select>
+                                        </div>
+                                      )}
+                                    </td>
+
+                                    <td className="px-4 py-2 border-b">
+                                      <textarea
+                                        rows={2}
+                                        className="border p-1 rounded w-full min-w-[180px]"
+                                        value={row.remarksPoGeneration ?? ""}
+                                        disabled={!canEdit}
+                                        onChange={(e) =>
+                                          handleFieldChange(
+                                            row._id,
+                                            "remarksPoGeneration",
+                                            e.target.value,
+                                          )
+                                        }
+                                      />
+                                    </td>
+                                  </>
+                                );
+                              })()}
+
+                            {/* PC Follow Up */}
+                            {((selectedOption === "PC Follow Up" && pcIndex) ||
+                              (selectedOption === "Payment Follow Up" &&
+                                paymentKey)) && (
+                              <>
+                                {/* Common fields */}
+                                <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                  {row.poDate
+                                    ? new Date(row.poDate)
+                                        .toLocaleDateString("en-GB")
+                                        .replace(/\//g, "-")
+                                    : ""}
+                                </td>
+                                <td className="px-4 py-2 border-b">
+                                  {row.poNumber}
+                                </td>
+                                <td className="px-4 py-2 border-b">
+                                  {(() => {
+                                    const hasUploadRole =
+                                      role === "ADMIN" ||
+                                      role === "PSE" ||
+                                      role === "PA";
+                                    const alreadyUploaded = Boolean(
+                                      row.poPdfWebViewLink,
+                                    );
+                                    const canReupload =
+                                      role === "ADMIN" || role === "PSE";
+                                    const canUpload =
+                                      hasUploadRole &&
+                                      (canReupload || !alreadyUploaded);
+                                    return (
+                                      <input
+                                        type="file"
+                                        accept="application/pdf"
+                                        disabled={
+                                          !canUpload ||
+                                          uploadingPoRowId === row._id
+                                        }
+                                        onChange={(e) => {
+                                          const f = e.target.files?.[0];
+                                          if (!f) return;
+                                          handlePoUpload(row._id, f);
+                                          e.target.value = "";
+                                        }}
+                                      />
+                                    );
+                                  })()}
+                                </td>
+                                <td className="px-4 py-2 border-b">
+                                  {row.poPdfWebViewLink ? (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        window.open(
+                                          row.poPdfWebViewLink,
+                                          "_blank",
+                                        )
+                                      }
+                                      disabled={uploadingPoRowId === row._id}
+                                      className="btn btn-sm btn-warning"
+                                    >
+                                      Show PO
+                                    </button>
+                                  ) : (
+                                    <span style={{ color: "#888" }}>No PO</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-2 border-b">
+                                  {row.vendorName}
+                                </td>
+                                <td className="px-4 py-2 border-b">
+                                  {row.leadDays}
+                                </td>
+                                <td className="px-4 py-2 border-b">
+                                  {row.paymentCondition}
+                                </td>
+
+                                {/* Transaction Number (Payment Follow Up only) */}
+                                {selectedOption === "Payment Follow Up" && (
+                                  <td className="px-4 py-2 border-b">
+                                    <input
+                                      type="text"
+                                      className="border p-1 rounded"
+                                      value={
+                                        row[
+                                          `transactionNoPayment${paymentKey}`
+                                        ] ?? ""
+                                      }
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          row._id,
+                                          `transactionNoPayment${paymentKey}`,
+                                          e.target.value,
+                                        )
+                                      }
+                                    />
+                                  </td>
+                                )}
+
+                                {/* Planned */}
+                                <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
+                                  {(
                                     selectedOption === "PC Follow Up"
-                                      ? row[`actualPCFollowUp${pcIndex}`] ?? ""
-                                      : row[`actualPayment${paymentKey}`] ?? ""
-                                  }
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
+                                      ? row[`plannedPCFollowUp${pcIndex}`]
+                                      : row[`plannedPayment${paymentKey}`]
+                                  )
+                                    ? new Date(
+                                        selectedOption === "PC Follow Up"
+                                          ? row[`plannedPCFollowUp${pcIndex}`]
+                                          : row[`plannedPayment${paymentKey}`],
+                                      )
+                                        .toLocaleDateString("en-GB")
+                                        .replace(/\//g, "-")
+                                    : ""}
+                                </td>
+
+                                {/* Actual */}
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="date"
+                                    className="border p-1 rounded"
+                                    value={
                                       selectedOption === "PC Follow Up"
-                                        ? `actualPCFollowUp${pcIndex}`
-                                        : `actualPayment${paymentKey}`,
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
+                                        ? row[`actualPCFollowUp${pcIndex}`] ??
+                                          ""
+                                        : row[`actualPayment${paymentKey}`] ??
+                                          ""
+                                    }
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        selectedOption === "PC Follow Up"
+                                          ? `actualPCFollowUp${pcIndex}`
+                                          : `actualPayment${paymentKey}`,
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
 
-                              {/* Status */}
-                              <td className="px-4 py-2 border-b">
-                                <select
-                                  className="border p-1 rounded"
-                                  value={
-                                    selectedOption === "PC Follow Up"
-                                      ? row[`statusPCFollowUp${pcIndex}`] ?? ""
-                                      : row[`statusPayment${paymentKey}`] ?? ""
-                                  }
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
+                                {/* Status */}
+                                <td className="px-4 py-2 border-b">
+                                  <select
+                                    className="border p-1 rounded"
+                                    value={
                                       selectedOption === "PC Follow Up"
-                                        ? `statusPCFollowUp${pcIndex}`
-                                        : `statusPayment${paymentKey}`,
-                                      e.target.value,
-                                    )
-                                  }
-                                >
-                                  <option value="">--Select--</option>
-                                  <option value="Hold">Hold</option>
-                                  <option value="Cancelled">Cancelled</option>
-                                  <option value="Done">Done</option>
-                                  <option value="Pending">Pending</option>
-                                </select>
-                              </td>
+                                        ? row[`statusPCFollowUp${pcIndex}`] ??
+                                          ""
+                                        : row[`statusPayment${paymentKey}`] ??
+                                          ""
+                                    }
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        selectedOption === "PC Follow Up"
+                                          ? `statusPCFollowUp${pcIndex}`
+                                          : `statusPayment${paymentKey}`,
+                                        e.target.value,
+                                      )
+                                    }
+                                  >
+                                    <option value="">--Select--</option>
+                                    <option value="Hold">Hold</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                    <option value="Done">Done</option>
+                                    <option value="Pending">Pending</option>
+                                  </select>
+                                </td>
 
-                              {/* Time Delay */}
-                              <td className="px-4 py-2 border-b">
-                                {selectedOption === "PC Follow Up"
-                                  ? row[`timeDelayPCFollowUp${pcIndex}`]
-                                  : row[`timeDelayPayment${paymentKey}`]}
-                              </td>
+                                {/* Time Delay */}
+                                <td className="px-4 py-2 border-b">
+                                  {selectedOption === "PC Follow Up"
+                                    ? row[`timeDelayPCFollowUp${pcIndex}`]
+                                    : row[`timeDelayPayment${paymentKey}`]}
+                                </td>
 
-                              {/* Remarks */}
-                              <td className="px-4 py-2 border-b">
-                                <textarea
-                                  rows={2}
-                                  className="border p-1 rounded w-full min-w-[180px]"
-                                  value={
-                                    selectedOption === "PC Follow Up"
-                                      ? row[`remarksPCFollowUp${pcIndex}`] ?? ""
-                                      : row[`remarksPayment${paymentKey}`] ?? ""
-                                  }
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
+                                {/* Remarks */}
+                                <td className="px-4 py-2 border-b">
+                                  <textarea
+                                    rows={2}
+                                    className="border p-1 rounded w-full min-w-[180px]"
+                                    value={
                                       selectedOption === "PC Follow Up"
-                                        ? `remarksPCFollowUp${pcIndex}`
-                                        : `remarksPayment${paymentKey}`,
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-                            </>
-                          )}
+                                        ? row[`remarksPCFollowUp${pcIndex}`] ??
+                                          ""
+                                        : row[`remarksPayment${paymentKey}`] ??
+                                          ""
+                                    }
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        selectedOption === "PC Follow Up"
+                                          ? `remarksPCFollowUp${pcIndex}`
+                                          : `remarksPayment${paymentKey}`,
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+                              </>
+                            )}
 
-                          {/* MATERIAL RECEIVED */}
-                          {selectedOption === "Material Received" && (
-                            <>
-                              {/* Planned Date (PO Date + Lead Days) */}
-                              <td className="px-4 py-2 border-b">
-                                {row.plannedMaterialReceived
-                                  ? new Date(row.plannedMaterialReceived)
-                                      .toLocaleDateString("en-GB")
-                                      .replace(/\//g, "-")
-                                  : ""}
-                              </td>
+                            {/* MATERIAL RECEIVED */}
+                            {selectedOption === "Material Received" && (
+                              <>
+                                {/* Planned Date (PO Date + Lead Days) */}
+                                <td className="px-4 py-2 border-b">
+                                  {row.plannedMaterialReceived
+                                    ? new Date(row.plannedMaterialReceived)
+                                        .toLocaleDateString("en-GB")
+                                        .replace(/\//g, "-")
+                                    : ""}
+                                </td>
 
-                              {/* Actual Date (Store Received preferred, else PSE Material Received) */}
-                              <td className="px-4 py-2 border-b">
-                                {row.actualMaterialReceived
-                                  ? new Date(row.actualMaterialReceived)
-                                      .toLocaleDateString("en-GB")
-                                      .replace(/\//g, "-")
-                                  : row.storeReceivedDate ||
-                                    row.materialReceivedDate
-                                  ? new Date(
-                                      row.storeReceivedDate ||
-                                        row.materialReceivedDate,
-                                    )
-                                      .toLocaleDateString("en-GB")
-                                      .replace(/\//g, "-")
-                                  : ""}
-                              </td>
+                                {/* Actual Date (Store Received preferred, else PSE Material Received) */}
+                                <td className="px-4 py-2 border-b">
+                                  {row.actualMaterialReceived
+                                    ? new Date(row.actualMaterialReceived)
+                                        .toLocaleDateString("en-GB")
+                                        .replace(/\//g, "-")
+                                    : row.storeReceivedDate ||
+                                      row.materialReceivedDate
+                                    ? new Date(
+                                        row.storeReceivedDate ||
+                                          row.materialReceivedDate,
+                                      )
+                                        .toLocaleDateString("en-GB")
+                                        .replace(/\//g, "-")
+                                    : ""}
+                                </td>
 
-                              {/* Time Delay */}
-                              <td className="px-4 py-2 border-b">
-                                {row.timeDelayMaterialReceived ?? ""}
-                              </td>
+                                {/* Time Delay */}
+                                <td className="px-4 py-2 border-b">
+                                  {row.timeDelayMaterialReceived ?? ""}
+                                </td>
 
-                              {/* Material Received Date (PSE) */}
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="date"
-                                  className="border p-1 rounded"
-                                  value={row.materialReceivedDate ?? ""}
-                                  disabled={
-                                    !(role === "PSE" || role === "ADMIN")
-                                  }
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "materialReceivedDate",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
+                                {/* Material Received Date (PSE) */}
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="date"
+                                    className="border p-1 rounded"
+                                    value={row.materialReceivedDate ?? ""}
+                                    disabled={
+                                      !(role === "PSE" || role === "ADMIN")
+                                    }
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "materialReceivedDate",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
 
-                              {/* Store Received Date (same field used in Store section) */}
-                              <td className="px-4 py-2 border-b">
-                                <input
-                                  type="date"
-                                  className="border p-1 rounded"
-                                  value={row.storeReceivedDate ?? ""}
-                                  disabled={
-                                    !(role === "Store" || role === "ADMIN")
-                                  }
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      row._id,
-                                      "storeReceivedDate",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                                {/* Store Received Date (same field used in Store section) */}
+                                <td className="px-4 py-2 border-b">
+                                  <input
+                                    type="date"
+                                    className="border p-1 rounded"
+                                    value={row.storeReceivedDate ?? ""}
+                                    disabled={
+                                      !(role === "Store" || role === "ADMIN")
+                                    }
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        row._id,
+                                        "storeReceivedDate",
+                                        e.target.value,
+                                      )
+                                    }
+                                  />
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
         </Motion.div>
         {/* ------- RIGHT ALIGNED SUBMIT BUTTON ------- */}
-        {selectedOption !== "Summary Report" && selectedOption !== "System Logs" && (
-          <div className="flex justify-end">
-            <button
-              onClick={handleSubmitUpdates}
-              disabled={saving}
-              className={`mt-6 w-full sm:w-auto px-4 py-2 text-sm sm:px-6 sm:py-3 sm:text-lg rounded-xl shadow-md transition ${
-                saving
-                  ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                  : "bg-green-600 text-white hover:bg-green-700"
-              }`}
-            >
-              {saving ? (
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Saving...
-                </span>
-              ) : (
-                "SUBMIT UPDATES"
-              )}
-            </button>
-          </div>
-        )}
+        {selectedOption !== "Summary Report" &&
+          selectedOption !== "System Logs" && (
+            <div className="flex justify-end">
+              <button
+                onClick={handleSubmitUpdates}
+                disabled={saving}
+                className={`mt-6 w-full sm:w-auto px-4 py-2 text-sm sm:px-6 sm:py-3 sm:text-lg rounded-xl shadow-md transition ${
+                  saving
+                    ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                    : "bg-green-600 text-white hover:bg-green-700"
+                }`}
+              >
+                {saving ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Saving...
+                  </span>
+                ) : (
+                  "SUBMIT UPDATES"
+                )}
+              </button>
+            </div>
+          )}
       </main>
     </div>
   );
 }
-
-
