@@ -9,11 +9,35 @@ import axios from "axios";
 // in BackEnd/server.js (app.use('/indent', purchaseRoutes)).
 //
 // If you set VITE_API_URL, set it to the backend ORIGIN only, e.g.:
-//   VITE_API_URL=https://backend-pms-three.vercel.app
+//   VITE_API_URL=https://pms-backend-main.vercel.app
 const API_ORIGIN = (
-  import.meta.env.VITE_API_URL || "https://backend-pms-three.vercel.app"
+  import.meta.env.VITE_API_URL || "https://pms-backend-main.vercel.app"
 ).replace(/\/+$/, "");
 const API_BASE = `${API_ORIGIN}/indent`;
+
+const getClientSystemName = () => {
+  if (typeof navigator === "undefined") return "";
+  const platform = navigator.userAgentData?.platform || navigator.platform || "Unknown";
+  const userAgent = navigator.userAgent || "";
+  return `${platform} | ${userAgent}`.slice(0, 250);
+};
+
+const withClientHeaders = (headers = {}) => {
+  const nextHeaders = { ...headers };
+  const systemName = getClientSystemName();
+  if (systemName) nextHeaders["X-System-Name"] = systemName;
+
+  if (typeof localStorage !== "undefined") {
+    const username = localStorage.getItem("username") || "";
+    const role = localStorage.getItem("role") || "";
+    const authToken = localStorage.getItem("authToken") || "";
+    if (username) nextHeaders["X-Username"] = username;
+    if (role) nextHeaders["X-User-Role"] = role;
+    if (authToken) nextHeaders.Authorization = `Bearer ${authToken}`;
+  }
+
+  return nextHeaders;
+};
 
 if (import.meta.env.MODE === "development") {
   console.log("🌐 API_BASE =", API_BASE);
@@ -39,7 +63,7 @@ export async function apiRequest(
 
     const options = {
       method,
-      headers: {},
+      headers: withClientHeaders({}),
     };
 
     const isFormData =
@@ -160,6 +184,10 @@ export async function getAllIndentForms({ role, username } = {}) {
 export async function getAllLocalPurchaseForms({ role, username } = {}) {
   console.log("📥 Fetching All Local Purchase Forms With Role & Username");
   return await apiRequest("/localpurchase/all", "POST", { role, username });
+}
+
+export async function getAuditLogs() {
+  return await apiRequest("/audit-logs", "GET");
 }
 
 // ==============================
@@ -456,3 +484,5 @@ export const getGetQuotationPdfByRowId = async (rowId) => {
   if (!rowId) throw new Error("rowId is required");
   return await apiRequest(`/getquotation/pdf/${encodeURIComponent(rowId)}`, "GET");
 };
+
+

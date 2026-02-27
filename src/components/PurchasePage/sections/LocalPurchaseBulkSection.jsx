@@ -102,8 +102,8 @@ export default function LocalPurchaseBulkSection({
 
         <div className="flex flex-col flex-1 min-w-[200px]">
           <label className="text-xs text-gray-600 mb-1">Remarks</label>
-          <input
-            type="text"
+          <textarea
+            rows={2}
             className="border p-2 rounded text-xs w-full"
             value={lpBulkRemarks}
             onChange={(e) => setLpBulkRemarks(e.target.value)}

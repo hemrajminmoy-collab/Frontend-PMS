@@ -36,6 +36,7 @@ export default function AddUser() {
   const handleLogout = () => {
     localStorage.removeItem("role");
     localStorage.removeItem("username");
+    localStorage.removeItem("authToken");
     navigate("/", { replace: true });
     window.location.reload();
   };

@@ -1,31 +1,28 @@
 import axios from "axios";
 
-// ✅ Use environment variable from Vite
-// Backend runs on 5000
 const API_BASE_URL = (
-  import.meta.env.VITE_API_URL || "https://backend-pms-three.vercel.app"
+  import.meta.env.VITE_API_URL || "https://pms-backend-main.vercel.app"
 ).replace(/\/+$/, "");
 
 export const loginUser = async ({ username, password }) => {
   try {
-    console.log("📥 [Frontend] Sending login data:", { username, password });
-
-    // ✅ Dynamic backend URL
     const response = await axios.post(`${API_BASE_URL}/auth/login`, {
       username,
       password,
     });
 
-    console.log("✅ [Frontend] Login API Response:", response.data);
-
-    // ✅ Handle backend response
     if (response.data?.success === "error") {
-      return "error"; // invalid credentials or server error
-    } else {
-      return response.data?.success; // e.g. "Admin" or "InputUser"
+      return { success: "error" };
     }
+
+    return {
+      success: response.data?.success || "error",
+      role: response.data?.role || response.data?.success || "",
+      username: response.data?.username || username,
+      token: response.data?.token || "",
+    };
   } catch (error) {
-    console.error("❌ [Frontend] Login API Error:", error.message);
-    return "error"; // always return "error" on API failure
+    console.error("Login API Error:", error.message);
+    return { success: "error" };
   }
 };

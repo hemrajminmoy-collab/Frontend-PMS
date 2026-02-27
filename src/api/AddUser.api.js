@@ -3,7 +3,7 @@ import axios from "axios";
 // ✅ Use environment variable from Vite
 // Backend runs on 5000
 const API_BASE_URL = (
-  import.meta.env.VITE_API_URL || "https://backend-pms-three.vercel.app"
+  import.meta.env.VITE_API_URL || "https://pms-backend-main.vercel.app"
 ).replace(/\/+$/, "");
 
 export const addUser = async ({ username, password, designation }) => {

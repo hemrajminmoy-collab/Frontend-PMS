@@ -1,6 +1,6 @@
 // Backend runs on 5000
 const API_BASE = (
-  import.meta.env.VITE_API_URL || "https://backend-pms-three.vercel.app"
+  import.meta.env.VITE_API_URL || "https://pms-backend-main.vercel.app"
 ).replace(/\/+$/, "");
 
 if (import.meta.env.MODE === "development") {

@@ -29,6 +29,7 @@ import StoreManualCloseSection from "./sections/StoreManualCloseSection";
 import StoreBulkInvoiceSection from "./sections/StoreBulkInvoiceSection";
 import PoBulkSection from "./sections/PoBulkSection";
 import LocalPurchaseBulkSection from "./sections/LocalPurchaseBulkSection";
+import SystemLogsSection from "./sections/SystemLogsSection";
 import {
   getAllIndentForms,
   getAllLocalPurchaseForms,
@@ -44,10 +45,16 @@ import {
 // ---------------------- ROLE FIRST ----------------------
 const getNavLinksByRole = (role, username) => {
   const normalizedUsername = String(username || "").trim();
+  const normalizedLowerUsername = normalizedUsername.toLowerCase();
+  const normalizedRole = String(role || "").trim().toUpperCase();
+  const isLogViewerUser =
+    normalizedLowerUsername === "minmoy" ||
+    normalizedLowerUsername === "mrinmoy" ||
+    normalizedRole === "ADMIN";
+
   console.log("Generating nav links for role:", role, "username:", normalizedUsername);
 
-  // Default full menu
-  const fullMenu = {
+  let menu = {
     "Executive FMS Section": [
       { name: "Indent Verification", icon: <FaClipboardCheck /> },
       { name: "Get Quotation", icon: <FaFileAlt /> },
@@ -63,9 +70,8 @@ const getNavLinksByRole = (role, username) => {
     ],
   };
 
-  // If PA → restricted menu
   if (role === "PSE") {
-    return {
+    menu = {
       "Executive FMS Section": [
         { name: "Indent Verification", icon: <FaClipboardCheck /> },
         { name: "Comparison Statement", icon: <FaBalanceScale /> },
@@ -77,14 +83,14 @@ const getNavLinksByRole = (role, username) => {
       ],
     };
   } else if (role === "PC" && normalizedUsername === "Anindita Chakraborty") {
-    return {
+    menu = {
       "Executive FMS Section": [
         { name: "PC Follow Up", icon: <FaPhoneAlt /> },
         { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
       ],
     };
   } else if (role === "PA") {
-    return {
+    menu = {
       "Executive FMS Section": [
         { name: "Get Quotation", icon: <FaFileAlt /> },
         { name: "Comparison Statement", icon: <FaBalanceScale /> },
@@ -93,14 +99,14 @@ const getNavLinksByRole = (role, username) => {
       ],
     };
   } else if (role === "PAC") {
-    return {
+    menu = {
       "Executive FMS Section": [
         { name: "Payment Follow Up", icon: <FaMoneyCheckAlt /> },
         { name: "Summary Report", icon: <FaClipboardList /> },
       ],
     };
   } else if (role === "PC") {
-    return {
+    menu = {
       "Executive FMS Section": [
         { name: "PC Follow Up", icon: <FaPhoneAlt /> },
         { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
@@ -109,7 +115,7 @@ const getNavLinksByRole = (role, username) => {
       ],
     };
   } else if (role === "ADMIN") {
-    return {
+    menu = {
       "Executive FMS Section": [
         { name: "PMS Master Sheet", icon: <FaClipboardList /> },
         { name: "PC Follow Up", icon: <FaPhoneAlt /> },
@@ -122,7 +128,7 @@ const getNavLinksByRole = (role, username) => {
       ],
     };
   } else if (role === "Store") {
-    return {
+    menu = {
       "Executive FMS Section": [
         { name: "Store", icon: <FaTruck /> },
         { name: "Material Received", icon: <FaTruck /> },
@@ -132,7 +138,18 @@ const getNavLinksByRole = (role, username) => {
     };
   }
 
-  return fullMenu;
+  if (isLogViewerUser) {
+    const sectionKey = "Executive FMS Section";
+    const links = menu[sectionKey] || [];
+    if (!links.some((link) => link.name === "System Logs")) {
+      menu = {
+        ...menu,
+        [sectionKey]: [...links, { name: "System Logs", icon: <FaClipboardList /> }],
+      };
+    }
+  }
+
+  return menu;
 };
 
 export default function PurchasePage() {
@@ -366,8 +383,29 @@ export default function PurchasePage() {
   // Wrapped in useCallback so react-hooks/exhaustive-deps is satisfied
   // ------------------ API base URL ------------------
   const API_BASE_URL = (
-    import.meta?.env?.VITE_BASE_URL || "https://backend-pms-three.vercel.app"
+    import.meta?.env?.VITE_API_URL || "https://pms-backend-main.vercel.app"
   ).replace(/\/+$/, "");
+  const getClientSystemName = () => {
+    if (typeof navigator === "undefined") return "";
+    const platform = navigator.userAgentData?.platform || navigator.platform || "Unknown";
+    const userAgent = navigator.userAgent || "";
+    return `${platform} | ${userAgent}`.slice(0, 250);
+  };
+
+  const getClientHeaders = () => {
+    const headers = { "Content-Type": "application/json" };
+    const localUsername = localStorage.getItem("username") || "";
+    const localRole = localStorage.getItem("role") || "";
+    const authToken = localStorage.getItem("authToken") || "";
+    const systemName = getClientSystemName();
+
+    if (localUsername) headers["X-Username"] = localUsername;
+    if (localRole) headers["X-User-Role"] = localRole;
+    if (systemName) headers["X-System-Name"] = systemName;
+    if (authToken) headers.Authorization = `Bearer ${authToken}`;
+
+    return headers;
+  };
 
   const [uploadingInvoiceRowId, setUploadingInvoiceRowId] = useState(null);
   const [uploadingPoRowId, setUploadingPoRowId] = useState(null);
@@ -464,6 +502,7 @@ export default function PurchasePage() {
         remarks,
         username: localStorage.getItem("username") || "",
         role: localStorage.getItem("role") || "",
+        systemName: getClientSystemName(),
       },
     );
     return data;
@@ -861,6 +900,11 @@ export default function PurchasePage() {
     try {
       const storedRole = localStorage.getItem("role") || "";
       const username = localStorage.getItem("username") || "";
+      if (selectedOption === "System Logs") {
+        setFilteredData([]);
+        return;
+      }
+
 
       // ✅ Special: Manual-Closed items (Store only)
       if (selectedOption === "Store" && findBy === "ManualClosed") {
@@ -997,6 +1041,7 @@ export default function PurchasePage() {
   const handleLogout = () => {
     localStorage.removeItem("role");
     localStorage.removeItem("username");
+    localStorage.removeItem("authToken");
     navigate("/", { replace: true });
     window.location.reload();
   };
@@ -1122,6 +1167,8 @@ export default function PurchasePage() {
       const res = await manualCloseStoreUniqueId({
         uniqueId: uid,
         closedBy,
+        role: localStorage.getItem("role") || "",
+        systemName: getClientSystemName(),
         reason: manualCloseReason.trim(),
       });
 
@@ -1251,19 +1298,22 @@ export default function PurchasePage() {
   };
 
   const addToLocalPurchase = async (payload) => {
-    // ✅ NEW validation
     if (!Array.isArray(payload.indentIds) || payload.indentIds.length === 0) {
       throw new Error("indentIds array is required");
     }
 
-    const res = await fetch(
-      "https://backend-pms-three.vercel.app/indent/add-to-localPurchase",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      },
-    );
+    const requestPayload = {
+      ...payload,
+      username: localStorage.getItem("username") || "",
+      role: localStorage.getItem("role") || "",
+      systemName: getClientSystemName(),
+    };
+
+    const res = await fetch(`${API_BASE_URL}/indent/add-to-localPurchase`, {
+      method: "POST",
+      headers: getClientHeaders(),
+      body: JSON.stringify(requestPayload),
+    });
 
     const data = await res.json();
 
@@ -1534,27 +1584,29 @@ export default function PurchasePage() {
           transition={{ duration: 0.5 }}
           className="purchase-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8"
         >
-          <PurchaseFilterBar
-            selectedOption={selectedOption}
-            pcFollowUp={pcFollowUp}
-            setPcFollowUp={setPcFollowUp}
-            paymentFollowUp={paymentFollowUp}
-            setPaymentFollowUp={setPaymentFollowUp}
-            showExcessBox={showExcessBox}
-            setShowExcessBox={setShowExcessBox}
-            findBy={findBy}
-            handleFindByChange={handleFindByChange}
-            selectedSite={selectedSite}
-            setSelectedSite={setSelectedSite}
-            selectedName={selectedName}
-            setSelectedName={setSelectedName}
-            date={date}
-            setDate={setDate}
-            startDate={startDate}
-            setStartDate={setStartDate}
-            endDate={endDate}
-            setEndDate={setEndDate}
-          />
+          {selectedOption !== "System Logs" && (
+            <PurchaseFilterBar
+              selectedOption={selectedOption}
+              pcFollowUp={pcFollowUp}
+              setPcFollowUp={setPcFollowUp}
+              paymentFollowUp={paymentFollowUp}
+              setPaymentFollowUp={setPaymentFollowUp}
+              showExcessBox={showExcessBox}
+              setShowExcessBox={setShowExcessBox}
+              findBy={findBy}
+              handleFindByChange={handleFindByChange}
+              selectedSite={selectedSite}
+              setSelectedSite={setSelectedSite}
+              selectedName={selectedName}
+              setSelectedName={setSelectedName}
+              date={date}
+              setDate={setDate}
+              startDate={startDate}
+              setStartDate={setStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
+            />
+          )}
 
           <div className="mb-8 p-4 bg-red-600 rounded-xl shadow-md text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-white">Purchase</h1>
@@ -1564,7 +1616,11 @@ export default function PurchasePage() {
             <SummaryReportSection summaryReport={summaryReport} />
           )}
 
-          {selectedOption !== "Summary Report" && (
+          {selectedOption === "System Logs" && (
+            <SystemLogsSection username={username} />
+          )}
+
+          {selectedOption !== "Summary Report" && selectedOption !== "System Logs" && (
             <div className="w-full max-h-[65vh] sm:max-h-[70vh] overflow-auto rounded-xl border border-gray-200">
               {selectedOption === "Store" && (
                 <StoreManualCloseSection
@@ -2552,9 +2608,9 @@ export default function PurchasePage() {
                                 </td>
 
                                 <td className="px-4 py-2 border-b">
-                                  <input
-                                    type="text"
-                                    className="border p-1 rounded"
+                                  <textarea
+                                    rows={2}
+                                    className="border p-1 rounded w-full min-w-[180px]"
                                     value={row.storeInvoiceNumber ?? ""}
                                     disabled={!canEditReceivedAndInvoice}
                                     onChange={(e) =>
@@ -2656,9 +2712,9 @@ export default function PurchasePage() {
                                     </td>
 
                                     <td className="px-4 py-2 border-b">
-                                      <input
-                                        type="text"
-                                        className="border p-1 rounded"
+                                      <textarea
+                                        rows={2}
+                                        className="border p-1 rounded w-full min-w-[180px]"
                                         value={row.storeModeOfDispatch ?? ""}
                                         disabled={!canEditStoreFields}
                                         onChange={(e) =>
@@ -2672,9 +2728,9 @@ export default function PurchasePage() {
                                     </td>
 
                                     <td className="px-4 py-2 border-b">
-                                      <input
-                                        type="text"
-                                        className="border p-1 rounded"
+                                      <textarea
+                                        rows={2}
+                                        className="border p-1 rounded w-full min-w-[180px]"
                                         value={
                                           row.storeDispatchDocumentNumber ?? ""
                                         }
@@ -2742,9 +2798,9 @@ export default function PurchasePage() {
                                 )}
 
                                 <td className="px-4 py-2 border-b">
-                                  <input
-                                    type="text"
-                                    className="border p-1 rounded"
+                                  <textarea
+                                    rows={2}
+                                    className="border p-1 rounded w-full min-w-[180px]"
                                     value={row.storeRemarks ?? ""}
                                     disabled={!canEditStoreFields}
                                     onChange={(e) =>
@@ -2759,9 +2815,9 @@ export default function PurchasePage() {
 
                                 {showAll && (
                                   <td className="px-4 py-2 border-b">
-                                    <input
-                                      type="text"
-                                      className="border p-1 rounded"
+                                    <textarea
+                                      rows={2}
+                                      className="border p-1 rounded w-full min-w-[180px]"
                                       value={row.storeNigeriaRemarks ?? ""}
                                       disabled={!canEditNigeriaFields}
                                       onChange={(e) =>
@@ -3031,9 +3087,9 @@ export default function PurchasePage() {
                             <>
                               {/* Remarks */}
                               <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded w-full"
+                                <textarea
+                                  rows={2}
+                                  className="border p-1 rounded w-full min-w-[180px]"
                                   value={row.remarksIndentVerification ?? ""}
                                   onChange={(e) =>
                                     handleFieldChange(
@@ -3164,9 +3220,9 @@ export default function PurchasePage() {
                               </td>
 
                               <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded"
+                                <textarea
+                                  rows={2}
+                                  className="border p-1 rounded w-full min-w-[180px]"
                                   value={row.remarksGetQuotation ?? ""}
                                   onChange={(e) =>
                                     handleFieldChange(
@@ -3241,9 +3297,9 @@ export default function PurchasePage() {
                               </td>
 
                               <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded"
+                                <textarea
+                                  rows={2}
+                                  className="border p-1 rounded w-full min-w-[180px]"
                                   value={row.remarksTechApproval ?? ""}
                                   onChange={(e) =>
                                     handleFieldChange(
@@ -3347,9 +3403,9 @@ export default function PurchasePage() {
                               </td>
 
                               <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded"
+                                <textarea
+                                  rows={2}
+                                  className="border p-1 rounded w-full min-w-[180px]"
                                   value={row.remarksCommercialNegotiation ?? ""}
                                   onChange={(e) =>
                                     handleFieldChange(
@@ -3668,9 +3724,9 @@ export default function PurchasePage() {
                               </td>
 
                               <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded"
+                                <textarea
+                                  rows={2}
+                                  className="border p-1 rounded w-full min-w-[180px]"
                                   value={row.remarksPoGeneration ?? ""}
                                   onChange={(e) =>
                                     handleFieldChange(
@@ -3757,9 +3813,9 @@ export default function PurchasePage() {
 
                                 {/* Remarks */}
                                 <td className="px-4 py-2 border-b">
-                                  <input
-                                    type="text"
-                                    className="border p-1 rounded"
+                                  <textarea
+                                    rows={2}
+                                    className="border p-1 rounded w-full min-w-[180px]"
                                     value={row.remarksGetQuotation ?? ""}
                                     onChange={(e) =>
                                       handleFieldChange(
@@ -3885,9 +3941,9 @@ export default function PurchasePage() {
                                     </td>
 
                                     <td className="px-4 py-2 border-b">
-                                      <input
-                                        type="text"
-                                        className="border p-1 rounded"
+                                      <textarea
+                                        rows={2}
+                                        className="border p-1 rounded w-full min-w-[180px]"
                                         value={approverValue}
                                         disabled={!canEditTechnical}
                                         onChange={(e) =>
@@ -3901,9 +3957,9 @@ export default function PurchasePage() {
                                     </td>
 
                                     <td className="px-4 py-2 border-b">
-                                      <input
-                                        type="text"
-                                        className="border p-1 rounded"
+                                      <textarea
+                                        rows={2}
+                                        className="border p-1 rounded w-full min-w-[180px]"
                                         value={remarksValue}
                                         disabled={!canEditTechnical}
                                         onChange={(e) =>
@@ -4067,9 +4123,9 @@ export default function PurchasePage() {
 
                                     {/* Remarks */}
                                     <td className="px-4 py-2 border-b">
-                                      <input
-                                        type="text"
-                                        className="border p-1 rounded"
+                                      <textarea
+                                        rows={2}
+                                        className="border p-1 rounded w-full min-w-[180px]"
                                         value={remarksValue}
                                         disabled={!canEditOtherFields} // ✅ locked when closed unless reopened
                                         onChange={(e) =>
@@ -4181,9 +4237,9 @@ export default function PurchasePage() {
                               </td>
 
                               <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="w-full border px-2 py-1 rounded"
+                                <textarea
+                                  rows={2}
+                                  className="w-full border px-2 py-1 rounded min-w-[180px]"
                                   value={row.remarks || ""}
                                   onChange={(e) =>
                                     handleFieldChange(
@@ -4483,9 +4539,9 @@ export default function PurchasePage() {
                                   </td>
 
                                   <td className="px-4 py-2 border-b">
-                                    <input
-                                      type="text"
-                                      className="border p-1 rounded"
+                                    <textarea
+                                      rows={2}
+                                      className="border p-1 rounded w-full min-w-[180px]"
                                       value={row.remarksPoGeneration ?? ""}
                                       disabled={!canEdit}
                                       onChange={(e) =>
@@ -4675,9 +4731,9 @@ export default function PurchasePage() {
 
                               {/* Remarks */}
                               <td className="px-4 py-2 border-b">
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded"
+                                <textarea
+                                  rows={2}
+                                  className="border p-1 rounded w-full min-w-[180px]"
                                   value={
                                     selectedOption === "PC Follow Up"
                                       ? row[`remarksPCFollowUp${pcIndex}`] ?? ""
@@ -4780,7 +4836,7 @@ export default function PurchasePage() {
           )}
         </Motion.div>
         {/* ------- RIGHT ALIGNED SUBMIT BUTTON ------- */}
-        {selectedOption !== "Summary Report" && (
+        {selectedOption !== "Summary Report" && selectedOption !== "System Logs" && (
           <div className="flex justify-end">
             <button
               onClick={handleSubmitUpdates}
@@ -4806,3 +4862,5 @@ export default function PurchasePage() {
     </div>
   );
 }
+
+

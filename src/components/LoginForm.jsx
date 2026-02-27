@@ -14,7 +14,9 @@ export default function LoginForm() {
 
   // ✅ Lazy init from localStorage (removes setState-in-effect warning)
   const [role, setRole] = useState(() => localStorage.getItem("role") || "");
-  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem("role"));
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    () => !!localStorage.getItem("role") && !!localStorage.getItem("authToken")
+  );
 
   const [username, setUsername] = useState(() => localStorage.getItem("username") || "");
   const [password, setPassword] = useState("");
@@ -38,17 +40,24 @@ export default function LoginForm() {
 
     try {
       const normalizedUsername = String(username || "").trim();
-      const success = await loginUser({ username: normalizedUsername, password });
+      const loginResult = await loginUser({
+        username: normalizedUsername,
+        password,
+      });
+      const success = loginResult?.success;
 
       const allowedRoles = ["ADMIN", "InputUser", "DEO", "PSE", "PA", "PC", "Store", "PAC"];
 
-      if (allowedRoles.includes(success)) {
-        setRole(success);
+      if (allowedRoles.includes(success) && loginResult?.token) {
+        const roleValue = loginResult?.role || success;
+        setRole(roleValue);
         setIsLoggedIn(true);
 
-        localStorage.setItem("role", success);
-        localStorage.setItem("username", normalizedUsername);
+        localStorage.setItem("role", roleValue);
+        localStorage.setItem("username", loginResult?.username || normalizedUsername);
+        localStorage.setItem("authToken", loginResult.token);
       } else {
+        localStorage.removeItem("authToken");
         setError("error");
       }
     } catch (err) {
