@@ -367,7 +367,8 @@ export default function IndentCreationForm() {
                             Sayanta Chakraborty
                           </option>
                           <option value="Arpita Ghosh">Arpita Ghosh</option>
-                          <option value="Souritra Ghoshal">Souritra Ghoshal</option>
+                          {/* <option value="Souritra Ghoshal">Souritra Ghoshal</option> */}
+                          <option value="Soumen Karmakar">Soumen Karmakar</option>
                           <option value="Amit Kr Ray">Amit Kr Ray</option>
                           <option value="Juin Baidya">Juin Baidya</option>
                         </select>
@@ -663,11 +664,12 @@ export default function IndentCreationForm() {
                 className="w-full p-3 bg-[#DFDDDD] rounded-xl"
               >
                 <option value="">Select Name</option>
-                <option value="Praloy Ghosh">Praloy Ghosh</option>
-                <option value="Sayanta Chakraborty">Sayanta Chakraborty</option>
                 <option value="Arpita Ghosh">Arpita Ghosh</option>
-                <option value="Souritra Ghoshal">Souritra Ghoshal</option>
                 <option value="Amit Kr Ray">Amit Kr Ray</option>
+                <option value="Praloy Ghosh">Praloy Ghosh</option>
+                {/* <option value="Sayanta Chakraborty">Sayanta Chakraborty</option> */}
+                <option value="Soumen Karmakar">Soumen Karmakar</option>
+                <option value="Souritra Ghoshal">Souritra Ghoshal</option>
                 <option value="Juin Baidya">Juin Baidya</option>
               </select>
             </div>

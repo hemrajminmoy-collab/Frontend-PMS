@@ -35,6 +35,7 @@ import {
   getAllLocalPurchaseForms,
   updatePurchaseRow,
   updateLocalPurchaseRow,
+  deleteIndentForm,
   getPurchaseByUniqueId,
   manualCloseStoreUniqueId,
   uploadComparisonPDF,
@@ -94,6 +95,19 @@ const getNavLinksByRole = (role, username) => {
       "Executive FMS Section": [
         { name: "PC Follow Up", icon: <FaPhoneAlt /> },
         { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
+      ],
+    };
+  } else if (role === "PC" && normalizedUsername === "Debasish Samanta PO") {
+    menu = {
+      "Executive FMS Section": [
+        { name: "PC Follow Up", icon: <FaPhoneAlt /> },
+        { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
+      ],
+    };
+  } else if (role === "PA" && normalizedUsername === "Debasish Samanta PO") {
+    menu = {
+      "Executive FMS Section": [
+        { name: "PO Generation", icon: <FaFileSignature /> },
       ],
     };
   } else if (role === "PA") {
@@ -166,10 +180,20 @@ export default function PurchasePage() {
   const navigate = useNavigate();
   const role = localStorage.getItem("role") || "";
   const username = localStorage.getItem("username") || "";
+  const normalizedCurrentUsername = String(username || "").trim();
+  const normalizedLowerCurrentUsername = normalizedCurrentUsername.toLowerCase();
+  const isDebasishPoUploadOnlyUser =
+    role === "PA" && normalizedCurrentUsername === "Debasish Samanta PO";
+  const canAdminBulkDeletePmsRows =
+    role === "ADMIN" &&
+    (normalizedLowerCurrentUsername === "minmoy" ||
+      normalizedLowerCurrentUsername === "mrinmoy");
 
   // --- Generate navLinks AFTER role is known ---
   const navLinks = getNavLinksByRole(role, username);
   const getDefaultOption = (role) => {
+    if (role === "PA" && normalizedCurrentUsername === "Debasish Samanta PO")
+      return "PO Generation";
     if (role === "ADMIN") return "PMS Master Sheet";
     if (role === "PA") return "Get Quotation";
     if (role === "PSE") return "Indent Verification";
@@ -377,6 +401,16 @@ export default function PurchasePage() {
     return arr;
   }, [renderedTableData, selectedOption]);
 
+  useEffect(() => {
+    if (!canAdminBulkDeletePmsRows || selectedOption !== "PMS Master Sheet") {
+      setPmsDeleteSelectedRowIds([]);
+      return;
+    }
+
+    const validIds = new Set((finalTableData || []).map((r) => r?._id).filter(Boolean));
+    setPmsDeleteSelectedRowIds((prev) => prev.filter((id) => validIds.has(id)));
+  }, [canAdminBulkDeletePmsRows, selectedOption, finalTableData]);
+
   // keep ref in-sync whenever state changes
   useEffect(() => {
     latestDataRef.current = tableData;
@@ -449,6 +483,8 @@ export default function PurchasePage() {
   const [poBulkUploading, setPoBulkUploading] = useState(false);
   const [poBulkError, setPoBulkError] = useState("");
   const [poBulkSuccess, setPoBulkSuccess] = useState("");
+  const [pmsDeleteSelectedRowIds, setPmsDeleteSelectedRowIds] = useState([]);
+  const [deletingPmsRows, setDeletingPmsRows] = useState(false);
 
   // ------------------ PO Generation: bulk selection helpers ------------------
   const isPoRowSelected = (rowId) => poSelectedRowIds.includes(rowId);
@@ -462,6 +498,25 @@ export default function PurchasePage() {
 
   const clearPoSelection = () => {
     setPoSelectedRowIds([]);
+  };
+
+  const isPmsDeleteRowSelected = (rowId) =>
+    pmsDeleteSelectedRowIds.includes(rowId);
+
+  const togglePmsDeleteRowSelected = (rowId) => {
+    if (!rowId) return;
+    setPmsDeleteSelectedRowIds((prev) =>
+      prev.includes(rowId) ? prev.filter((x) => x !== rowId) : [...prev, rowId],
+    );
+  };
+
+  const clearPmsDeleteSelection = () => {
+    setPmsDeleteSelectedRowIds([]);
+  };
+
+  const selectAllPmsDeleteRows = (rows) => {
+    const ids = (rows || []).map((r) => r?._id).filter(Boolean);
+    setPmsDeleteSelectedRowIds(ids);
   };
 
   // ------------------ Local Purchase: bulk selection + bulk fields ------------------
@@ -1090,6 +1145,33 @@ export default function PurchasePage() {
   };
 
   const handleFieldChange = (id, field, value) => {
+    const isPoGenerationEditableField = [
+      "poGenerationStatus",
+      "poDate",
+      "poNumber",
+      "vendorName",
+      "leadDays",
+      "amount",
+      "paymentCondition",
+      "papwDays",
+      "remarksPoGeneration",
+    ].includes(field);
+
+    const isFollowUpEditableField =
+      field.startsWith("transactionNoPayment") ||
+      field.startsWith("actualPCFollowUp") ||
+      field.startsWith("actualPayment") ||
+      field.startsWith("statusPCFollowUp") ||
+      field.startsWith("statusPayment") ||
+      field.startsWith("remarksPCFollowUp") ||
+      field.startsWith("remarksPayment");
+
+    if (
+      isDebasishPoUploadOnlyUser &&
+      (isFollowUpEditableField || isPoGenerationEditableField)
+    )
+      return;
+
     const today = new Date().toISOString().split("T")[0];
 
     const isGetQuotationDone = field === "doerStatus" && value === "Done";
@@ -1367,6 +1449,62 @@ export default function PurchasePage() {
     return data;
   };
 
+  const handleDeleteSelectedPmsRows = async () => {
+    if (deletingPmsRows) return;
+    if (!canAdminBulkDeletePmsRows || selectedOption !== "PMS Master Sheet") {
+      return;
+    }
+
+    const rowIds = [...new Set((pmsDeleteSelectedRowIds || []).filter(Boolean))];
+    if (!rowIds.length) {
+      alert("Please select at least 1 row to delete.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete ${rowIds.length} selected row(s)? This action cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingPmsRows(true);
+    try {
+      const failed = [];
+
+      for (const rowId of rowIds) {
+        try {
+          await deleteIndentForm(rowId);
+        } catch (error) {
+          console.error("❌ Delete failed for row:", rowId, error);
+          failed.push(rowId);
+        }
+      }
+
+      const deletedCount = rowIds.length - failed.length;
+      if (failed.length === 0) {
+        alert(`✅ Deleted ${deletedCount} row(s) successfully.`);
+        clearPmsDeleteSelection();
+      } else {
+        alert(
+          `Deleted ${deletedCount} row(s). Failed to delete ${failed.length} row(s).`,
+        );
+        setPmsDeleteSelectedRowIds(failed);
+      }
+
+      setChangedRows((prev) => {
+        const next = { ...prev };
+        rowIds.forEach((id) => delete next[id]);
+        return next;
+      });
+
+      await fetchIndentForms();
+    } catch (error) {
+      console.error("❌ Bulk delete failed:", error);
+      alert(error?.message || "Failed to delete selected rows.");
+    } finally {
+      setDeletingPmsRows(false);
+    }
+  };
+
   const handleSubmitUpdates = async () => {
     if (saving) return;
 
@@ -1542,6 +1680,16 @@ export default function PurchasePage() {
           box-shadow: 0 20px 60px rgba(17, 24, 39, 0.12);
         }
 
+        .purchase-shell input:disabled,
+        .purchase-shell select:disabled,
+        .purchase-shell textarea:disabled,
+        .purchase-shell button:disabled,
+        .purchase-shell input[readonly],
+        .purchase-shell select[readonly],
+        .purchase-shell textarea[readonly] {
+          cursor: not-allowed !important;
+        }
+
         .purchase-shell .sticky-item-description {
           position: sticky;
           left: 0;
@@ -1708,7 +1856,8 @@ export default function PurchasePage() {
                   />
                 )}
 
-                {selectedOption === "PO Generation" && (
+                {selectedOption === "PO Generation" &&
+                  !isDebasishPoUploadOnlyUser && (
                   <PoBulkSection
                     poSelectedRowIds={poSelectedRowIds}
                     poBulkPoNumber={poBulkPoNumber}
@@ -1762,6 +1911,43 @@ export default function PurchasePage() {
                     lpBulkSuccess={lpBulkSuccess}
                   />
                 )}
+
+                {selectedOption === "PMS Master Sheet" &&
+                  canAdminBulkDeletePmsRows && (
+                    <div className="mb-4 border rounded-xl p-3 bg-red-50 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="text-sm font-semibold text-red-800">
+                          Delete Rows - Selected: {pmsDeleteSelectedRowIds.length}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm"
+                            onClick={() => selectAllPmsDeleteRows(finalTableData)}
+                            disabled={deletingPmsRows || !finalTableData.length}
+                          >
+                            Select All
+                          </button>
+                          <button
+                            type="button"
+                            className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm"
+                            onClick={clearPmsDeleteSelection}
+                            disabled={deletingPmsRows || !pmsDeleteSelectedRowIds.length}
+                          >
+                            Clear
+                          </button>
+                          <button
+                            type="button"
+                            className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-sm disabled:opacity-60"
+                            onClick={handleDeleteSelectedPmsRows}
+                            disabled={deletingPmsRows || !pmsDeleteSelectedRowIds.length}
+                          >
+                            {deletingPmsRows ? "Deleting..." : "Delete Selected"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                 <table className="min-w-max border border-gray-200 rounded-xl whitespace-nowrap text-xs">
                   <thead className="bg-gray-200 rounded-t-xl sticky top-0 z-20">
@@ -1905,6 +2091,12 @@ export default function PurchasePage() {
                               Select
                             </th>
                           )}
+                          {selectedOption === "PMS Master Sheet" &&
+                            canAdminBulkDeletePmsRows && (
+                              <th className="px-4 py-3 border-b text-red-700">
+                                Select
+                              </th>
+                            )}
                           <th className="px-4 py-3 border-b">Date</th>
                           <th className="px-4 py-3 border-b">Site</th>
                           <th className="px-4 py-3 border-b">
@@ -2917,6 +3109,19 @@ export default function PurchasePage() {
                                   } hover:bg-red-50 transition`
                             }
                           >
+                            {selectedOption === "PMS Master Sheet" &&
+                              canAdminBulkDeletePmsRows && (
+                                <td className="px-4 py-2 border-b text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={isPmsDeleteRowSelected(row._id)}
+                                    onChange={() =>
+                                      togglePmsDeleteRowSelected(row._id)
+                                    }
+                                    disabled={deletingPmsRows || !row._id}
+                                  />
+                                </td>
+                              )}
                             {/* DATE */}
                             <td className="px-4 py-2 border-b">
                               {isDefaultEditable ? (
@@ -3607,7 +3812,8 @@ export default function PurchasePage() {
                                     const hasUploadRole =
                                       role === "ADMIN" ||
                                       role === "PSE" ||
-                                      role === "PA";
+                                      role === "PA" ||
+                                      isDebasishPoUploadOnlyUser;
                                     const alreadyUploaded = Boolean(
                                       row.poPdfWebViewLink,
                                     );
@@ -4377,7 +4583,8 @@ export default function PurchasePage() {
                                   hasRole &&
                                   finalizeDone &&
                                   approvalDone &&
-                                  !isPoAlreadyDone;
+                                  !isPoAlreadyDone &&
+                                  !isDebasishPoUploadOnlyUser;
 
                                 const poStatusValue = dbPoStatus;
 
@@ -4472,7 +4679,8 @@ export default function PurchasePage() {
                                         const hasUploadRole =
                                           role === "ADMIN" ||
                                           role === "PSE" ||
-                                          role === "PA";
+                                          role === "PA" ||
+                                          isDebasishPoUploadOnlyUser;
                                         const alreadyUploaded = Boolean(
                                           row.poPdfWebViewLink,
                                         );
@@ -4674,7 +4882,8 @@ export default function PurchasePage() {
                                     const hasUploadRole =
                                       role === "ADMIN" ||
                                       role === "PSE" ||
-                                      role === "PA";
+                                      role === "PA" ||
+                                      isDebasishPoUploadOnlyUser;
                                     const alreadyUploaded = Boolean(
                                       row.poPdfWebViewLink,
                                     );
@@ -4741,6 +4950,7 @@ export default function PurchasePage() {
                                           `transactionNoPayment${paymentKey}`
                                         ] ?? ""
                                       }
+                                      disabled={isDebasishPoUploadOnlyUser}
                                       onChange={(e) =>
                                         handleFieldChange(
                                           row._id,
@@ -4781,6 +4991,7 @@ export default function PurchasePage() {
                                         : row[`actualPayment${paymentKey}`] ??
                                           ""
                                     }
+                                    disabled={isDebasishPoUploadOnlyUser}
                                     onChange={(e) =>
                                       handleFieldChange(
                                         row._id,
@@ -4804,6 +5015,7 @@ export default function PurchasePage() {
                                         : row[`statusPayment${paymentKey}`] ??
                                           ""
                                     }
+                                    disabled={isDebasishPoUploadOnlyUser}
                                     onChange={(e) =>
                                       handleFieldChange(
                                         row._id,
@@ -4841,6 +5053,7 @@ export default function PurchasePage() {
                                         : row[`remarksPayment${paymentKey}`] ??
                                           ""
                                     }
+                                    disabled={isDebasishPoUploadOnlyUser}
                                     onChange={(e) =>
                                       handleFieldChange(
                                         row._id,
@@ -4939,7 +5152,8 @@ export default function PurchasePage() {
         </Motion.div>
         {/* ------- RIGHT ALIGNED SUBMIT BUTTON ------- */}
         {selectedOption !== "Summary Report" &&
-          selectedOption !== "System Logs" && (
+          selectedOption !== "System Logs" &&
+          !(isDebasishPoUploadOnlyUser && selectedOption === "PO Generation") && (
             <div className="flex justify-end">
               <button
                 onClick={handleSubmitUpdates}
