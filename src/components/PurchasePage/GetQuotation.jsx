@@ -86,6 +86,7 @@ const getNavLinksByRole = (role, username) => {
         { name: "Comparison Statement", icon: <FaBalanceScale /> },
         { name: "Technical Approval", icon: <FaCheckCircle /> },
         { name: "Commercial Negotiation", icon: <FaHandshake /> },
+        { name: "PO Generation", icon: <FaFileSignature /> },
         { name: "Material Received", icon: <FaTruck /> },
         { name: "Local Purchase", icon: <FaStore /> },
         { name: "Summary Report", icon: <FaClipboardList /> },
@@ -2069,6 +2070,7 @@ export default function PurchasePage() {
                 )}
 
                 {selectedOption === "PO Generation" &&
+                  (role === "PSE" || role === "ADMIN") &&
                   !isDebasishPoUploadOnlyUser && (
                   <PoBulkSection
                     poSelectedRowIds={poSelectedRowIds}
@@ -3446,9 +3448,9 @@ export default function PurchasePage() {
                             {/* ITEM DESCRIPTION */}
                             <td className="px-4 py-2 border-b sticky-item-description">
                               {isDefaultEditable ? (
-                                <input
-                                  type="text"
-                                  className="border p-1 rounded w-full"
+                                <textarea
+                                  rows={2}
+                                  className="border p-1 rounded w-full resize-y"
                                   value={row.itemDescription ?? ""}
                                   onChange={(e) =>
                                     handleFieldChange(
@@ -3459,7 +3461,9 @@ export default function PurchasePage() {
                                   }
                                 />
                               ) : (
-                                row.itemDescription
+                                <div className="whitespace-pre-wrap break-words">
+                                  {row.itemDescription}
+                                </div>
                               )}
                             </td>
 
@@ -4037,14 +4041,12 @@ export default function PurchasePage() {
                                   {(() => {
                                     const hasUploadRole =
                                       role === "ADMIN" ||
-                                      role === "PSE" ||
                                       role === "PA" ||
                                       isDebasishPoUploadOnlyUser;
                                     const alreadyUploaded = Boolean(
                                       row.poPdfWebViewLink,
                                     );
-                                    const canReupload =
-                                      role === "ADMIN" || role === "PSE";
+                                    const canReupload = role === "ADMIN";
                                     const canUpload =
                                       hasUploadRole &&
                                       (canReupload || !alreadyUploaded);
@@ -4800,17 +4802,12 @@ export default function PurchasePage() {
                                 ).toString();
                                 const isPoAlreadyDone = dbPoStatus === "Done";
 
-                                // ? allow PA + ADMIN only
-                                const hasRole =
-                                  role === "PA" || role === "ADMIN";
-
-                                // ? final edit flag
-                                const canEdit =
-                                  hasRole &&
+                                // PO detail fields are filled by PSE (ADMIN override).
+                                const canEditPoDetails =
+                                  (role === "PSE" || role === "ADMIN") &&
                                   finalizeDone &&
                                   approvalDone &&
-                                  !isPoAlreadyDone &&
-                                  !isDebasishPoUploadOnlyUser;
+                                  !isPoAlreadyDone;
 
                                 const poStatusValue = dbPoStatus;
 
@@ -4820,7 +4817,7 @@ export default function PurchasePage() {
                                       <input
                                         type="checkbox"
                                         checked={isPoRowSelected(row._id)}
-                                        disabled={!canEdit}
+                                        disabled={!canEditPoDetails}
                                         onChange={() =>
                                           togglePoRowSelected(row._id)
                                         }
@@ -4846,7 +4843,7 @@ export default function PurchasePage() {
                                       <select
                                         className="border p-1 rounded"
                                         value={poStatusValue}
-                                        disabled={!canEdit}
+                                        disabled={!canEditPoDetails}
                                         onChange={(e) =>
                                           handleFieldChange(
                                             row._id,
@@ -4873,7 +4870,7 @@ export default function PurchasePage() {
                                         type="date"
                                         className="border p-1 rounded"
                                         value={row.poDate ?? ""}
-                                        disabled={!canEdit}
+                                        disabled={!canEditPoDetails}
                                         onChange={(e) =>
                                           handleFieldChange(
                                             row._id,
@@ -4889,7 +4886,7 @@ export default function PurchasePage() {
                                         type="text"
                                         className="border p-1 rounded"
                                         value={row.poNumber ?? ""}
-                                        disabled={!canEdit}
+                                        disabled={!canEditPoDetails}
                                         onChange={(e) =>
                                           handleFieldChange(
                                             row._id,
@@ -4903,15 +4900,12 @@ export default function PurchasePage() {
                                     <td className="px-4 py-2 border-b">
                                       {(() => {
                                         const hasUploadRole =
-                                          role === "ADMIN" ||
-                                          role === "PSE" ||
-                                          role === "PA" ||
+                                          role === "ADMIN" || role === "PA" ||
                                           isDebasishPoUploadOnlyUser;
                                         const alreadyUploaded = Boolean(
                                           row.poPdfWebViewLink,
                                         );
-                                        const canReupload =
-                                          role === "ADMIN" || role === "PSE";
+                                        const canReupload = role === "ADMIN";
                                         const canUpload =
                                           hasUploadRole &&
                                           (canReupload || !alreadyUploaded);
@@ -4963,7 +4957,7 @@ export default function PurchasePage() {
                                         type="text"
                                         className="border p-1 rounded"
                                         value={row.vendorName ?? ""}
-                                        disabled={!canEdit}
+                                        disabled={!canEditPoDetails}
                                         onChange={(e) =>
                                           handleFieldChange(
                                             row._id,
@@ -4979,7 +4973,7 @@ export default function PurchasePage() {
                                         type="number"
                                         className="border p-1 rounded"
                                         value={row.leadDays ?? ""}
-                                        disabled={!canEdit}
+                                        disabled={!canEditPoDetails}
                                         onChange={(e) =>
                                           handleFieldChange(
                                             row._id,
@@ -4995,7 +4989,7 @@ export default function PurchasePage() {
                                         type="number"
                                         className="border p-1 rounded"
                                         value={row.amount ?? ""}
-                                        disabled={!canEdit}
+                                        disabled={!canEditPoDetails}
                                         onChange={(e) =>
                                           handleFieldChange(
                                             row._id,
@@ -5010,7 +5004,7 @@ export default function PurchasePage() {
                                       <select
                                         className="border p-1 rounded"
                                         value={row.paymentCondition ?? ""}
-                                        disabled={!canEdit}
+                                        disabled={!canEditPoDetails}
                                         onChange={(e) =>
                                           handleFieldChange(
                                             row._id,
@@ -5043,7 +5037,7 @@ export default function PurchasePage() {
                                           <select
                                             className="border p-1 rounded w-full"
                                             value={row.papwDays ?? ""}
-                                            disabled={!canEdit}
+                                            disabled={!canEditPoDetails}
                                             onChange={(e) =>
                                               handleFieldChange(
                                                 row._id,
@@ -5073,7 +5067,7 @@ export default function PurchasePage() {
                                         rows={2}
                                         className="border p-1 rounded w-full min-w-[180px]"
                                         value={row.remarksPoGeneration ?? ""}
-                                        disabled={!canEdit}
+                                        disabled={!canEditPoDetails}
                                         onChange={(e) =>
                                           handleFieldChange(
                                             row._id,
@@ -5107,14 +5101,12 @@ export default function PurchasePage() {
                                   {(() => {
                                     const hasUploadRole =
                                       role === "ADMIN" ||
-                                      role === "PSE" ||
                                       role === "PA" ||
                                       isDebasishPoUploadOnlyUser;
                                     const alreadyUploaded = Boolean(
                                       row.poPdfWebViewLink,
                                     );
-                                    const canReupload =
-                                      role === "ADMIN" || role === "PSE";
+                                    const canReupload = role === "ADMIN";
                                     const canUpload =
                                       hasUploadRole &&
                                       (canReupload || !alreadyUploaded);
