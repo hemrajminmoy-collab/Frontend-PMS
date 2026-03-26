@@ -182,8 +182,16 @@ export async function getAllIndentForms({ role, username } = {}) {
 }
 
 export async function getAllLocalPurchaseForms({ role, username } = {}) {
-  console.log("📥 Fetching All Local Purchase Forms With Role & Username");
+  console.log("Fetching All Local Purchase Forms With Role & Username");
   return await apiRequest("/localpurchase/all", "POST", { role, username });
+}
+
+export async function getDelayFollowups({ role, username } = {}) {
+  return await apiRequest("/delay-followup", "POST", { role, username });
+}
+
+export async function upsertDelayFollowup(payload) {
+  return await apiRequest("/delay-followup", "PUT", payload || {});
 }
 
 export async function getAuditLogs() {
@@ -484,5 +492,6 @@ export const getGetQuotationPdfByRowId = async (rowId) => {
   if (!rowId) throw new Error("rowId is required");
   return await apiRequest(`/getquotation/pdf/${encodeURIComponent(rowId)}`, "GET");
 };
+
 
 

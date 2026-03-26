@@ -30,6 +30,7 @@ import StoreBulkInvoiceSection from "./sections/StoreBulkInvoiceSection";
 import PoBulkSection from "./sections/PoBulkSection";
 import LocalPurchaseBulkSection from "./sections/LocalPurchaseBulkSection";
 import SystemLogsSection from "./sections/SystemLogsSection";
+import DelayFollowupSection from "./sections/DelayFollowupSection";
 import {
   getAllIndentForms,
   getAllLocalPurchaseForms,
@@ -39,7 +40,7 @@ import {
   getPurchaseByUniqueId,
   manualCloseStoreUniqueId,
   uploadComparisonPDF,
-  //getComparisonPdfByRowId,
+  getComparisonPdfByRowId,
   //uploadGetQuotationPDF
 } from "../../api/IndentForm.api";
 
@@ -171,6 +172,19 @@ const getNavLinksByRole = (role, username) => {
         ],
       };
     }
+  }
+
+  const sectionKey = "Executive FMS Section";
+  const links = menu[sectionKey] || [];
+  const canUseDelayFollowup = ["ADMIN", "PSE", "PA", "PC", "PAC", "STORE"].includes(
+    normalizedRole,
+  );
+
+  if (canUseDelayFollowup && !links.some((link) => link.name === "Delay Followup")) {
+    menu = {
+      ...menu,
+      [sectionKey]: [...links, { name: "Delay Followup", icon: <FaClipboardList /> }],
+    };
   }
 
   return menu;
@@ -351,14 +365,14 @@ export default function PurchasePage() {
     [],
   );
 
-  const parseDelayDays = (value) => {
+  const parseDelayDays = useCallback((value) => {
     if (!value) return 0;
     if (typeof value === "number") return value;
     const s = String(value).toLowerCase();
     const m = s.match(/(\d+)/);
     if (!m) return 0;
     return Number(m[1]) || 0;
-  };
+  }, []);
 
   const summaryReport = React.useMemo(() => {
     const rows = Array.isArray(tableData) ? tableData : [];
@@ -387,7 +401,144 @@ export default function PurchasePage() {
         top,
       };
     });
-  }, [tableData, delayFields]);
+  }, [tableData, delayFields, parseDelayDays]);
+
+  const trackedDelayFields = React.useMemo(
+    () => [
+      {
+        id: "get3Quotation",
+        key: "timeDelayGetQuotation",
+        label: "Get 3 quotation, Finalise Terms and Get Approval whatever is remaining",
+      },
+      {
+        id: "technicalApprovalsFromIndenter",
+        key: "timeDelayTechApproval",
+        label: "Technical Approvals from the Indenter",
+      },
+      {
+        id: "commercialNegotiationFinaliseTerms",
+        key: "timeDelayCommercialNegotiation",
+        label: "Make Commercial Negotiation & Finalise Terms",
+      },
+      {
+        id: "getApproval",
+        key: "timeDelayCommercialNegotiation",
+        label: "Get Approval",
+      },
+      {
+        id: "generatePoGoogleForm",
+        key: "timeDelayPoGeneration",
+        label: "Generate all PO and Fill PO Google Form",
+      },
+      {
+        id: "issuePoToSupplier",
+        key: "timeDelayPoGeneration",
+        label: "Issue PO to Supplier",
+      },
+    ],
+    [],
+  );
+
+  const trackedStageDelayReport = React.useMemo(() => {
+    const rows = Array.isArray(tableData) ? tableData : [];
+
+    return trackedDelayFields.map((stage) => {
+      const delayedRows = rows
+        .map((row) => ({
+          uniqueId: String(row.uniqueId || row._id || "").trim() || "N/A",
+          pse: String(row.submittedBy || "").trim() || "Unassigned",
+          site: String(row.site || "").trim() || "-",
+          section: String(row.section || "").trim() || "-",
+          delayDays: parseDelayDays(row[stage.key]),
+        }))
+        .filter((item) => item.delayDays > 0);
+
+      const groupedByUniqueId = new Map();
+      delayedRows.forEach((item) => {
+        if (!groupedByUniqueId.has(item.uniqueId)) {
+          groupedByUniqueId.set(item.uniqueId, {
+            ...item,
+            delayedItemCount: 1,
+            maxDelayDays: item.delayDays,
+          });
+          return;
+        }
+
+        const existing = groupedByUniqueId.get(item.uniqueId);
+        existing.delayedItemCount += 1;
+        existing.maxDelayDays = Math.max(existing.maxDelayDays, item.delayDays);
+      });
+
+      const uniqueItems = Array.from(groupedByUniqueId.values()).sort((a, b) => {
+        if (b.maxDelayDays !== a.maxDelayDays) return b.maxDelayDays - a.maxDelayDays;
+        if (b.delayedItemCount !== a.delayedItemCount)
+          return b.delayedItemCount - a.delayedItemCount;
+        return a.uniqueId.localeCompare(b.uniqueId, undefined, { numeric: true });
+      });
+
+      return {
+        ...stage,
+        delayedItems: delayedRows.length,
+        delayedUniqueIds: uniqueItems.length,
+        uniqueItems,
+      };
+    });
+  }, [tableData, trackedDelayFields, parseDelayDays]);
+
+  const pseStageDelaySummary = React.useMemo(() => {
+    const summaryByPse = new Map();
+    const buildEmptySectionSummary = () =>
+      trackedDelayFields.reduce((acc, stage) => {
+        acc[stage.id] = {
+          label: stage.label,
+          uniqueIds: 0,
+          items: 0,
+        };
+        return acc;
+      }, {});
+
+    trackedStageDelayReport.forEach((stage) => {
+      stage.uniqueItems.forEach((item) => {
+        const pse = item.pse || "Unassigned";
+
+        if (!summaryByPse.has(pse)) {
+          summaryByPse.set(pse, {
+            pse,
+            sectionDelaySummary: buildEmptySectionSummary(),
+          });
+        }
+
+        const row = summaryByPse.get(pse);
+        const bucket = row.sectionDelaySummary[stage.id];
+        bucket.uniqueIds += 1;
+        bucket.items += item.delayedItemCount;
+      });
+    });
+
+    return Array.from(summaryByPse.values())
+      .map((entry) => {
+        const stageSummaries = Object.values(entry.sectionDelaySummary);
+        const totalUniqueIds = stageSummaries.reduce(
+          (acc, stageSummary) => acc + stageSummary.uniqueIds,
+          0,
+        );
+        const totalItems = stageSummaries.reduce(
+          (acc, stageSummary) => acc + stageSummary.items,
+          0,
+        );
+
+        return {
+          ...entry,
+          totalUniqueIds,
+          totalItems,
+        };
+      })
+      .sort((a, b) => {
+        if (b.totalUniqueIds !== a.totalUniqueIds) return b.totalUniqueIds - a.totalUniqueIds;
+        if (b.totalItems !== a.totalItems) return b.totalItems - a.totalItems;
+        return a.pse.localeCompare(b.pse);
+      });
+  }, [trackedStageDelayReport, trackedDelayFields]);
 
   const finalTableData = React.useMemo(() => {
     if (selectedOption !== "Comparison Statement") return renderedTableData;
@@ -759,7 +910,7 @@ export default function PurchasePage() {
     }
   };
 
-  // ✅ Helper: update both tableData + filteredData so UI reflects latest PDF links
+  // ? Helper: update both tableData + filteredData so UI reflects latest PDF links
   const patchRowInTables = (rowId, patch) => {
     setTableData((prev) =>
       Array.isArray(prev)
@@ -795,7 +946,7 @@ export default function PurchasePage() {
     formData.append("file", file);
     formData.append("rowId", rowId);
 
-    // ✅ pass role/username for backend permission + audit
+    // ? pass role/username for backend permission + audit
     formData.append("role", localStorage.getItem("role") || "");
     formData.append("username", localStorage.getItem("username") || "");
 
@@ -974,7 +1125,7 @@ export default function PurchasePage() {
         return;
       }
 
-      // ✅ Special: Manual-Closed items (Store only)
+      // ? Special: Manual-Closed items (Store only)
       if (selectedOption === "Store" && findBy === "ManualClosed") {
         const res = await axios.get(
           `${API_BASE_URL}/indent/store/manual-closed`,
@@ -984,7 +1135,7 @@ export default function PurchasePage() {
         return;
       }
 
-      // ✅ Normal fetch: Indent / Local Purchase
+      // ? Normal fetch: Indent / Local Purchase
       let response;
       if (selectedOption === "Local Purchase") {
         response = await getAllLocalPurchaseForms({
@@ -1053,7 +1204,7 @@ export default function PurchasePage() {
 
       setFilteredData(Array.isArray(rows) ? rows : []);
     } catch (error) {
-      console.error("❌ Error fetching Purchase data:", error);
+      console.error("? Error fetching Purchase data:", error);
       setFilteredData([]);
     }
   }, [
@@ -1069,7 +1220,7 @@ export default function PurchasePage() {
     API_BASE_URL,
   ]);
 
-  // ✅ FindBy dropdown handler
+  // ? FindBy dropdown handler
   const handleFindByChange = (value) => {
     setFindBy(value);
 
@@ -1310,7 +1461,7 @@ export default function PurchasePage() {
           });
           if (refreshed?.success) setTableData(refreshed.data || []);
         } catch (e) {
-          console.warn("⚠️ Refresh after manual close failed:", e);
+          console.warn("?? Refresh after manual close failed:", e);
         }
       } else {
         setManualCloseError(res?.message || "Manual close failed.");
@@ -1340,7 +1491,7 @@ export default function PurchasePage() {
   //   setSaving(true);
 
   //   try {
-  //     console.log("📤 Sending Changed Rows:", changedRows);
+  //     console.log("?? Sending Changed Rows:", changedRows);
 
   //     //setChangedRowsForLogging(changedRows);
   //     for (const [id, changes] of Object.entries(changedRows)) {
@@ -1348,7 +1499,7 @@ export default function PurchasePage() {
   //       console.log("Updated ID:", id, "Data Sent:", changes);
   //     }
 
-  //     alert("✅ Updates Saved Successfully!");
+  //     alert("? Updates Saved Successfully!");
 
   //     // Refresh data from backend
   //     await fetchIndentForms();
@@ -1356,7 +1507,7 @@ export default function PurchasePage() {
   //     // Reset changedRows after successful update
   //     setChangedRows({});
   //   } catch (err) {
-  //     console.error("❌ Save Error:", err);
+  //     console.error("? Save Error:", err);
   //     alert("Error saving changes.");
   //   } finally {
   //     setSaving(false);
@@ -1373,9 +1524,9 @@ export default function PurchasePage() {
       return;
     }
 
-    // ✅ Debug: confirm this function is being called
+    // ? Debug: confirm this function is being called
     console.log(
-      "📤 Uploading rowId:",
+      "?? Uploading rowId:",
       rowId,
       "file:",
       file?.name,
@@ -1386,39 +1537,84 @@ export default function PurchasePage() {
     try {
       const res = await uploadComparisonPDF(rowId, file);
 
-      // ✅ Debug: see exact backend response
-      console.log("✅ PDF upload response:", res);
+      // ? Debug: see exact backend response
+      console.log("? PDF upload response:", res);
 
-      // ✅ backend returns webViewLink (new) OR fileUrl (old)
+      // ? backend returns webViewLink (new) OR fileUrl (old)
       const link = res?.webViewLink || res?.fileUrl || "";
 
       if (!link) {
         console.error(
-          "❌ Upload succeeded but no link returned. Response:",
+          "? Upload succeeded but no link returned. Response:",
           res,
         );
         alert("Upload failed: no PDF link returned.");
         return;
       }
 
-      alert("✅ PDF uploaded successfully!");
+      alert("? PDF uploaded successfully!");
 
-      // ✅ Update UI instantly even before refresh
+      // ? Update UI instantly even before refresh
       setPdfPreview((prev) => ({ ...prev, [rowId]: link }));
       setUploadedFiles((prev) => ({ ...prev, [rowId]: file.name }));
 
-      // ✅ Refresh to get updated row fields from DB
+      // ? Refresh to get updated row fields from DB
       await fetchIndentForms();
     } catch (err) {
-      // ✅ Show actual backend error text (very important)
+      // ? Show actual backend error text (very important)
       const backendMsg =
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||
         "Failed to upload PDF.";
 
-      console.error("❌ PDF Upload Error:", err?.response?.data || err);
+      console.error("? PDF Upload Error:", err?.response?.data || err);
       alert(`Failed to upload PDF: ${backendMsg}`);
+    }
+  };
+
+  const handleShowComparisonPdf = async (row) => {
+    const rowId = row?._id;
+    if (!rowId) {
+      alert("Row id missing.");
+      return;
+    }
+
+    const existingLink =
+      pdfPreview[rowId] ||
+      row?.comparisonStatementPdf ||
+      row?.comparisonPdfWebViewLink ||
+      "";
+
+    if (existingLink) {
+      window.open(existingLink, "_blank");
+      return;
+    }
+
+    try {
+      const res = await getComparisonPdfByRowId(rowId);
+      const fetchedLink =
+        res?.data?.webViewLink ||
+        res?.webViewLink ||
+        "";
+
+      if (!fetchedLink) {
+        alert("PDF not found for this row.");
+        return;
+      }
+
+      patchRowInTables(rowId, {
+        comparisonStatementPdf: fetchedLink,
+        comparisonPdfWebViewLink: fetchedLink,
+      });
+      window.open(fetchedLink, "_blank");
+    } catch (err) {
+      const backendMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Unable to open PDF.";
+      alert(`Unable to open PDF: ${backendMsg}`);
     }
   };
 
@@ -1474,14 +1670,14 @@ export default function PurchasePage() {
         try {
           await deleteIndentForm(rowId);
         } catch (error) {
-          console.error("❌ Delete failed for row:", rowId, error);
+          console.error("? Delete failed for row:", rowId, error);
           failed.push(rowId);
         }
       }
 
       const deletedCount = rowIds.length - failed.length;
       if (failed.length === 0) {
-        alert(`✅ Deleted ${deletedCount} row(s) successfully.`);
+        alert(`? Deleted ${deletedCount} row(s) successfully.`);
         clearPmsDeleteSelection();
       } else {
         alert(
@@ -1498,7 +1694,7 @@ export default function PurchasePage() {
 
       await fetchIndentForms();
     } catch (error) {
-      console.error("❌ Bulk delete failed:", error);
+      console.error("? Bulk delete failed:", error);
       alert(error?.message || "Failed to delete selected rows.");
     } finally {
       setDeletingPmsRows(false);
@@ -1512,7 +1708,7 @@ export default function PurchasePage() {
       alert("No changes to save.");
       return;
     }
-    // ✅ If user is in Local Purchase section and selected rows for BULK update,
+    // ? If user is in Local Purchase section and selected rows for BULK update,
     // apply invoiceDate/vendorName/remarks in one shot.
     if (selectedOption === "Local Purchase" && lpSelectedRowIds.length > 0) {
       try {
@@ -1571,7 +1767,7 @@ export default function PurchasePage() {
     setSaving(true);
 
     try {
-      console.log("📤 Sending Changed Rows:", changedRows);
+      console.log("?? Sending Changed Rows:", changedRows);
 
       const localPurchaseBuckets = {
         "Local 1": [],
@@ -1580,24 +1776,24 @@ export default function PurchasePage() {
       };
 
       for (const [id, changes] of Object.entries(changedRows)) {
-        // 🔁 CONDITIONAL UPDATE
+        // ?? CONDITIONAL UPDATE
         if (selectedOption === "Local Purchase") {
           await updateLocalPurchaseRow(id, changes);
-          console.log("🟢 Local Purchase Updated:", id);
+          console.log("?? Local Purchase Updated:", id);
         } else {
           await updatePurchaseRow(id, changes);
-          console.log("🔵 Purchase Updated:", id);
+          console.log("?? Purchase Updated:", id);
 
-          // 🧾 Collect IDs for bulk Local Purchase
+          // ?? Collect IDs for bulk Local Purchase
           if (localPurchaseBuckets[changes.doerName]) {
             localPurchaseBuckets[changes.doerName].push(id);
           }
         }
       }
 
-      console.log("🧾 Local Purchase Buckets:", localPurchaseBuckets);
+      console.log("?? Local Purchase Buckets:", localPurchaseBuckets);
 
-      // 🚀 BULK API CALL (per Local Purchase bucket)
+      // ?? BULK API CALL (per Local Purchase bucket)
       for (const [doerName, indentIds] of Object.entries(
         localPurchaseBuckets,
       )) {
@@ -1608,18 +1804,18 @@ export default function PurchasePage() {
           doerName, // "Local 1" | "Local 2" | "Local 3"
         });
 
-        console.log(`🚀 Bulk Local Purchase Response (${doerName}):`, response);
+        console.log(`?? Bulk Local Purchase Response (${doerName}):`, response);
       }
 
-      alert("✅ Updates Saved Successfully!");
+      alert("? Updates Saved Successfully!");
 
-      // 🔄 Refresh data
+      // ?? Refresh data
       await fetchIndentForms();
 
-      // ♻ Reset changes
+      // ? Reset changes
       setChangedRows({});
     } catch (err) {
-      console.error("❌ Save Error:", err);
+      console.error("? Save Error:", err);
       alert(err.message || "Error saving changes.");
     } finally {
       setSaving(false);
@@ -1775,7 +1971,8 @@ export default function PurchasePage() {
           transition={{ duration: 0.5 }}
           className="purchase-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8"
         >
-          {selectedOption !== "System Logs" && (
+          {selectedOption !== "System Logs" &&
+            selectedOption !== "Delay Followup" && (
             <PurchaseFilterBar
               selectedOption={selectedOption}
               pcFollowUp={pcFollowUp}
@@ -1810,15 +2007,30 @@ export default function PurchasePage() {
           </div>
 
           {selectedOption === "Summary Report" && (
-            <SummaryReportSection summaryReport={summaryReport} />
+            <SummaryReportSection
+              summaryReport={summaryReport}
+              trackedDelayFields={trackedDelayFields}
+              trackedStageDelayReport={trackedStageDelayReport}
+              pseStageDelaySummary={pseStageDelaySummary}
+              role={role}
+              username={username}
+            />
           )}
 
           {selectedOption === "System Logs" && (
             <SystemLogsSection username={username} />
           )}
 
+          {selectedOption === "Delay Followup" && (
+            <DelayFollowupSection
+              role={role}
+              username={username}
+            />
+          )}
+
           {selectedOption !== "Summary Report" &&
-            selectedOption !== "System Logs" && (
+            selectedOption !== "System Logs" &&
+            selectedOption !== "Delay Followup" && (
               <div className="w-full max-h-[65vh] sm:max-h-[70vh] overflow-auto rounded-xl border border-gray-200">
                 {selectedOption === "Store" && (
                   <StoreManualCloseSection
@@ -1987,7 +2199,7 @@ export default function PurchasePage() {
                         </>
                       ) : selectedOption === "Store" ? (
                         <>
-                          {/* ✅ SELECT COLUMN */}
+                          {/* ? SELECT COLUMN */}
                           <th className="px-4 py-3 border-b text-center w-[50px]">
                             Select
                           </th>
@@ -2501,15 +2713,23 @@ export default function PurchasePage() {
                             {/* Upload PDF */}
                             <td className="px-4 py-1 border-b w-[160px]">
                               {(() => {
-                                const isPA =
-                                  localStorage.getItem("role") === "PA";
+                                const currentRole =
+                                  localStorage.getItem("role") || role;
+                                const isPA = currentRole === "PA";
+                                const canUploadComparisonPdf =
+                                  currentRole === "PA" ||
+                                  currentRole === "ADMIN";
                                 const isDone =
                                   row.comparisonStatementStatus === "Done";
-                                const isReadOnly = isPA && isDone;
+                                const isReadOnly =
+                                  !canUploadComparisonPdf ||
+                                  (isPA && isDone);
 
-                                // ✅ SINGLE SOURCE OF TRUTH (from Mongo)
+                                // ? SINGLE SOURCE OF TRUTH (from Mongo)
                                 const savedDriveLink =
-                                  row.comparisonStatementPdf || "";
+                                  row.comparisonStatementPdf ||
+                                  row.comparisonPdfWebViewLink ||
+                                  "";
 
                                 const localPreviewLink =
                                   pdfPreview[row._id] || "";
@@ -2546,23 +2766,29 @@ export default function PurchasePage() {
                                       }}
                                     />
                                     {/* Upload Button */}
-                                    <button
-                                      type="button"
-                                      disabled={isReadOnly}
-                                      onClick={() =>
-                                        !isReadOnly &&
-                                        document
-                                          .getElementById(`pdfInput_${row._id}`)
-                                          ?.click()
-                                      }
-                                      className={`flex items-center gap-2 px-3 py-0.5 rounded transition ${
-                                        isReadOnly
-                                          ? "bg-gray-400 cursor-not-allowed text-white"
-                                          : "bg-blue-600 hover:bg-blue-700 text-white"
-                                      }`}
-                                    >
-                                      <FaFileUpload /> Upload
-                                    </button>
+                                    {canUploadComparisonPdf ? (
+                                      <button
+                                        type="button"
+                                        disabled={isReadOnly}
+                                        onClick={() =>
+                                          !isReadOnly &&
+                                          document
+                                            .getElementById(`pdfInput_${row._id}`)
+                                            ?.click()
+                                        }
+                                        className={`flex items-center gap-2 px-3 py-0.5 rounded transition ${
+                                          isReadOnly
+                                            ? "bg-gray-400 cursor-not-allowed text-white"
+                                            : "bg-blue-600 hover:bg-blue-700 text-white"
+                                        }`}
+                                      >
+                                        <FaFileUpload /> Upload
+                                      </button>
+                                    ) : (
+                                      <span className="text-xs text-gray-500">
+                                        View only
+                                      </span>
+                                    )}
                                     {/* Local uploaded file (same session) */}
                                     {uploadedFiles[row._id] &&
                                       localPreviewLink && (
@@ -2600,28 +2826,28 @@ export default function PurchasePage() {
                             <td className="px-4 py-1 border-b w-[130px] text-center">
                               {(() => {
                                 const savedDriveLink =
-                                  row.comparisonStatementPdf || "";
+                                  row.comparisonStatementPdf ||
+                                  row.comparisonPdfWebViewLink ||
+                                  "";
                                 const localPreviewLink =
                                   pdfPreview[row._id] || "";
 
                                 const showPdfLink =
                                   localPreviewLink || savedDriveLink;
+                                const canOpen = Boolean(row?._id);
 
                                 return (
                                   <button
                                     type="button"
-                                    disabled={!showPdfLink}
-                                    onClick={() =>
-                                      showPdfLink &&
-                                      window.open(showPdfLink, "_blank")
-                                    }
+                                    disabled={!canOpen}
+                                    onClick={() => handleShowComparisonPdf(row)}
                                     className={`px-3 py-0.5 rounded font-medium transition ${
-                                      showPdfLink
+                                      canOpen
                                         ? "bg-yellow-400 hover:bg-yellow-500 text-black"
                                         : "bg-gray-300 text-gray-600 cursor-not-allowed"
                                     }`}
                                   >
-                                    Show PDF
+                                    {showPdfLink ? "Show PDF" : "Open PDF"}
                                   </button>
                                 );
                               })()}
@@ -2737,7 +2963,7 @@ export default function PurchasePage() {
                                 isAdmin || isNigeriaStoreUser;
                               const canEditStoreFields =
                                 isAdmin || isHiplStoreUser;
-                              // ✅ Allow editing received qty/date even when balance is 0 (including excess receipt).
+                              // ? Allow editing received qty/date even when balance is 0 (including excess receipt).
                               // Only block edits after manual close.
                               const canEditReceivedAndInvoice =
                                 (isAdmin || isHiplStoreUser) &&
@@ -3346,7 +3572,7 @@ export default function PurchasePage() {
                                   <option value="Executive 4">
                                     Executive 4
                                   </option>
-                                  {/* ✅ Local Purchase buckets */}
+                                  {/* ? Local Purchase buckets */}
                                   <option value="Local 1">
                                     Local Purchase 1
                                   </option>
@@ -4123,7 +4349,7 @@ export default function PurchasePage() {
                                     />
                                   </td>
 
-                                  {/* 📤 UPLOAD GET QUOTATION PDF */}
+                                  {/* ?? UPLOAD GET QUOTATION PDF */}
                                   <td className="px-4 py-2 border-b">
                                     <input
                                       type="file"
@@ -4131,13 +4357,13 @@ export default function PurchasePage() {
                                       onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
-                                          handlePdfUpload(row._id, file); // ✅ SAME function
+                                          handlePdfUpload(row._id, file); // ? SAME function
                                         }
                                       }}
                                     />
                                   </td>
 
-                                  {/* 🔗 SHOW GET QUOTATION PDF */}
+                                  {/* ?? SHOW GET QUOTATION PDF */}
                                   <td className="px-4 py-2 border-b text-center">
                                     {row.getQuotationPdfWebViewLink ||
                                     pdfPreview[row._id] ? (
@@ -4163,7 +4389,7 @@ export default function PurchasePage() {
                             {selectedOption === "Technical Approval" && (
                               <>
                                 {(() => {
-                                  // ✅ Status currently (prefer live edited value, fallback to DB snapshot)
+                                  // ? Status currently (prefer live edited value, fallback to DB snapshot)
                                   // Status currently (prefer live edited value, fallback to DB snapshot)
                                   const dbTechStatus =
                                     row.dbTechnicalApprovalStatus ?? "";
@@ -4303,10 +4529,10 @@ export default function PurchasePage() {
                                     row.dbRemarksCommercialNegotiation ??
                                     "";
 
-                                  // ✅ Status dropdowns should remain enabled for PSE/ADMIN even when closed
+                                  // ? Status dropdowns should remain enabled for PSE/ADMIN even when closed
                                   const canEditStatus = isPseOrAdmin;
 
-                                  // ✅ Other fields editable only if NOT closed, OR if user already reopened in UI
+                                  // ? Other fields editable only if NOT closed, OR if user already reopened in UI
                                   const isReopenedNow =
                                     finalizeValue === "Reopen" ||
                                     approvalValue === "Reopen";
@@ -4341,7 +4567,7 @@ export default function PurchasePage() {
                                         <select
                                           className="border p-1 rounded"
                                           value={finalizeValue}
-                                          disabled={!canEditStatus} // ✅ stays enabled for PSE/ADMIN always
+                                          disabled={!canEditStatus} // ? stays enabled for PSE/ADMIN always
                                           onChange={(e) =>
                                             handleFieldChange(
                                               row._id,
@@ -4369,7 +4595,7 @@ export default function PurchasePage() {
                                         <select
                                           className="border p-1 rounded"
                                           value={approvalValue}
-                                          disabled={!canEditStatus} // ✅ stays enabled for PSE/ADMIN always
+                                          disabled={!canEditStatus} // ? stays enabled for PSE/ADMIN always
                                           onChange={(e) =>
                                             handleFieldChange(
                                               row._id,
@@ -4393,7 +4619,7 @@ export default function PurchasePage() {
                                         <select
                                           className="border p-1 rounded"
                                           value={approverValue}
-                                          disabled={!canEditOtherFields} // ✅ locked when closed unless reopened
+                                          disabled={!canEditOtherFields} // ? locked when closed unless reopened
                                           onChange={(e) =>
                                             handleFieldChange(
                                               row._id,
@@ -4424,7 +4650,7 @@ export default function PurchasePage() {
                                           rows={2}
                                           className="border p-1 rounded w-full min-w-[180px]"
                                           value={remarksValue}
-                                          disabled={!canEditOtherFields} // ✅ locked when closed unless reopened
+                                          disabled={!canEditOtherFields} // ? locked when closed unless reopened
                                           onChange={(e) =>
                                             handleFieldChange(
                                               row._id,
@@ -4553,7 +4779,7 @@ export default function PurchasePage() {
                             )}
                             {selectedOption === "PO Generation" &&
                               (() => {
-                                // ✅ prereqs (use UI first, fallback to DB)
+                                // ? prereqs (use UI first, fallback to DB)
                                 const finalizeStatus = (
                                   row.finalizeTermsStatus ??
                                   row.dbFinalizeTermsStatus ??
@@ -4568,17 +4794,17 @@ export default function PurchasePage() {
                                 const finalizeDone = finalizeStatus === "Done";
                                 const approvalDone = approvalStatus === "Done";
 
-                                // ✅ current db status (use UI first, fallback to DB)
+                                // ? current db status (use UI first, fallback to DB)
                                 const dbPoStatus = (
                                   row.dbPoGenerationStatus ?? ""
                                 ).toString();
                                 const isPoAlreadyDone = dbPoStatus === "Done";
 
-                                // ✅ allow PA + ADMIN only
+                                // ? allow PA + ADMIN only
                                 const hasRole =
                                   role === "PA" || role === "ADMIN";
 
-                                // ✅ final edit flag
+                                // ? final edit flag
                                 const canEdit =
                                   hasRole &&
                                   finalizeDone &&
@@ -5153,6 +5379,7 @@ export default function PurchasePage() {
         {/* ------- RIGHT ALIGNED SUBMIT BUTTON ------- */}
         {selectedOption !== "Summary Report" &&
           selectedOption !== "System Logs" &&
+          selectedOption !== "Delay Followup" &&
           !(isDebasishPoUploadOnlyUser && selectedOption === "PO Generation") && (
             <div className="flex justify-end">
               <button
