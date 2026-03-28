@@ -92,10 +92,17 @@ export default function IndentCreationForm() {
           localPurchase: true,
         });
       } else {
-        await createIndentForm({
+        const response = await createIndentForm({
           ...formData,
           totalQuantity: totalQty,
         });
+        if (response?.skipped) {
+          alert(
+            response?.message ||
+              "Duplicate skipped: same Indent Number and Item Description already exists.",
+          );
+          return;
+        }
       }
 
       alert(
@@ -179,6 +186,9 @@ export default function IndentCreationForm() {
     setIsBulkSaving(true);
 
     try {
+      let insertedCount = 0;
+      let skippedCount = 0;
+
       for (let i = 0; i < bulkData.length; i++) {
         const row = bulkData[i];
         const totalQty = Number(row["Total Quantity"]);
@@ -188,7 +198,7 @@ export default function IndentCreationForm() {
         const idRes = await getLatestUniqueId();
         const uniqueId = idRes.success ? idRes.uniqueId.toString() : "";
 
-        await createIndentForm({
+        const response = await createIndentForm({
           uniqueId,
           site: row["Site"] || "",
           section: row["Section"] || "",
@@ -202,9 +212,17 @@ export default function IndentCreationForm() {
           totalQuantity: totalQty,
           submittedBy: row.submittedBy || "User",
         });
+
+        if (response?.skipped) {
+          skippedCount += 1;
+        } else {
+          insertedCount += 1;
+        }
       }
 
-      alert("Bulk data saved successfully!");
+      alert(
+        `Bulk upload completed.\nInserted: ${insertedCount}\nSkipped (duplicate): ${skippedCount}`,
+      );
       setBulkData([]);
       setShowBulkUpload(false);
     } catch (error) {

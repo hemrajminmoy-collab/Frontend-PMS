@@ -51,6 +51,9 @@ const getNavLinksByRole = (role, username) => {
   const normalizedRole = String(role || "")
     .trim()
     .toUpperCase();
+  const isDebasishPoUploadOnlyUsername =
+    normalizedLowerUsername === "debasish samanta po" ||
+    normalizedLowerUsername === "debasis samanta po";
   const isLogViewerUser =
     normalizedLowerUsername === "minmoy" ||
     normalizedLowerUsername === "mrinmoy" ||
@@ -99,14 +102,16 @@ const getNavLinksByRole = (role, username) => {
         { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
       ],
     };
-  } else if (role === "PC" && normalizedUsername === "Debasish Samanta PO") {
-    menu = {
-      "Executive FMS Section": [
-        { name: "PC Follow Up", icon: <FaPhoneAlt /> },
-        { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
-      ],
-    };
-  } else if (role === "PA" && normalizedUsername === "Debasish Samanta PO") {
+  } 
+  // else if (role === "PC" && normalizedUsername === "Debasish Samanta PO") {
+  //   menu = {
+  //     "Executive FMS Section": [
+  //       { name: "PC Follow Up", icon: <FaPhoneAlt /> },
+  //       { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
+  //     ],
+  //   };
+  // } 
+  else if (role === "PA" && isDebasishPoUploadOnlyUsername) {
     menu = {
       "Executive FMS Section": [
         { name: "PO Generation", icon: <FaFileSignature /> },
@@ -155,6 +160,7 @@ const getNavLinksByRole = (role, username) => {
       "Executive FMS Section": [
         { name: "Store", icon: <FaTruck /> },
         { name: "Material Received", icon: <FaTruck /> },
+        { name: "PO Generation", icon: <FaFileSignature /> },
         { name: "Local Purchase", icon: <FaStore /> },
         { name: "Summary Report", icon: <FaClipboardList /> },
       ],
@@ -197,8 +203,13 @@ export default function PurchasePage() {
   const username = localStorage.getItem("username") || "";
   const normalizedCurrentUsername = String(username || "").trim();
   const normalizedLowerCurrentUsername = normalizedCurrentUsername.toLowerCase();
+  const isDebasishPoUploadOnlyUsername =
+    normalizedLowerCurrentUsername === "debasish samanta po" ||
+    normalizedLowerCurrentUsername === "debasis samanta po";
   const isDebasishPoUploadOnlyUser =
-    role === "PA" && normalizedCurrentUsername === "Debasish Samanta PO";
+    role === "PA" && isDebasishPoUploadOnlyUsername;
+  const canAccessPoBulkUpload =
+    role === "PSE" || role === "ADMIN" || isDebasishPoUploadOnlyUser;
   const canAdminBulkDeletePmsRows =
     role === "ADMIN" &&
     (normalizedLowerCurrentUsername === "minmoy" ||
@@ -207,7 +218,7 @@ export default function PurchasePage() {
   // --- Generate navLinks AFTER role is known ---
   const navLinks = getNavLinksByRole(role, username);
   const getDefaultOption = (role) => {
-    if (role === "PA" && normalizedCurrentUsername === "Debasish Samanta PO")
+    if (role === "PA" && isDebasishPoUploadOnlyUser)
       return "PO Generation";
     if (role === "ADMIN") return "PMS Master Sheet";
     if (role === "PA") return "Get Quotation";
@@ -231,7 +242,7 @@ export default function PurchasePage() {
   const [paymentFollowUp, setPaymentFollowUp] = useState("PWP");
 
   // ------------------ Date formatting helpers ------------------
-  // DB may store dates as ISO strings (YYYY-MM-DD) or full ISO timestamps.
+  //   DB may store dates as ISO strings (YYYY-MM-DD) or full ISO timestamps.
   // We want stable display as DD-MM-YYYY (same as your previous logic).
   const formatDDMMYYYY = useCallback((value) => {
     if (!value) return "";
@@ -281,6 +292,9 @@ export default function PurchasePage() {
   const [findBy, setFindBy] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
   const [selectedName, setSelectedName] = useState("");
+  const [selectedSubmittedByNames, setSelectedSubmittedByNames] = useState([]);
+  const [submittedByOptions, setSubmittedByOptions] = useState([]);
+  const [masterUniqueIdFilter, setMasterUniqueIdFilter] = useState("");
   const [storeInFilter, setStoreInFilter] = useState("");
   const [storeItemDescriptionFilter, setStoreItemDescriptionFilter] =
     useState("");
@@ -1154,6 +1168,14 @@ export default function PurchasePage() {
         response?.data?.success !== undefined ? response.data : response;
       const ok = payload?.success === true;
       let rows = ok && Array.isArray(payload?.data) ? payload.data : [];
+      const allSubmittedByNames = Array.from(
+        new Set(
+          (rows || [])
+            .map((item) => String(item?.submittedBy || "").trim())
+            .filter(Boolean),
+        ),
+      ).sort((a, b) => a.localeCompare(b));
+      setSubmittedByOptions(allSubmittedByNames);
 
       // -------- FILTER BY SITE --------
       if (findBy === "Site" && selectedSite) {
@@ -1163,6 +1185,35 @@ export default function PurchasePage() {
       // -------- FILTER BY NAME --------
       if (findBy === "Name" && selectedName) {
         rows = rows.filter((item) => (item.doerName || "") === selectedName);
+      }
+
+      // -------- PMS MASTER SHEET: FILTER BY UNIQUE ID --------
+      if (selectedOption === "PMS Master Sheet" && findBy === "UniqueId") {
+        const q = String(masterUniqueIdFilter || "").trim().toLowerCase();
+        if (q) {
+          rows = rows.filter((item) =>
+            String(item.uniqueId || "")
+              .toLowerCase()
+              .includes(q),
+          );
+        }
+      }
+
+      // -------- PC FOLLOW UP: FILTER BY MULTIPLE SUBMITTED BY --------
+      if (
+        selectedOption === "PC Follow Up" &&
+        findBy === "SubmittedByMulti" &&
+        Array.isArray(selectedSubmittedByNames) &&
+        selectedSubmittedByNames.length > 0
+      ) {
+        const allowedSubmittedBy = new Set(
+          selectedSubmittedByNames
+            .map((name) => String(name || "").trim())
+            .filter(Boolean),
+        );
+        rows = rows.filter((item) =>
+          allowedSubmittedBy.has(String(item?.submittedBy || "").trim()),
+        );
       }
 
       // -------- FILTER BY DATE --------
@@ -1213,6 +1264,8 @@ export default function PurchasePage() {
     findBy,
     selectedSite,
     selectedName,
+    masterUniqueIdFilter,
+    selectedSubmittedByNames,
     storeInFilter,
     storeItemDescriptionFilter,
     date,
@@ -1228,6 +1281,8 @@ export default function PurchasePage() {
     // reset filters when switching mode
     setSelectedSite("");
     setSelectedName("");
+    setMasterUniqueIdFilter("");
+    setSelectedSubmittedByNames([]);
     setStoreInFilter("");
     setStoreItemDescriptionFilter("");
     setDate("");
@@ -1906,6 +1961,21 @@ export default function PurchasePage() {
           background: #e5e7eb;
         }
 
+        /* Store-only: show full item description with wider, multiline cell */
+        .purchase-shell .store-item-description {
+          width: 420px;
+          min-width: 420px;
+          max-width: 520px;
+          white-space: normal;
+          overflow: visible;
+          text-overflow: clip;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          line-height: 1.35;
+          vertical-align: top;
+          height: auto;
+        }
+
         @media (max-width: 1023px) {
           .purchase-shell .sticky-item-description,
           .purchase-shell .sticky-item-description-head {
@@ -1988,6 +2058,11 @@ export default function PurchasePage() {
               setSelectedSite={setSelectedSite}
               selectedName={selectedName}
               setSelectedName={setSelectedName}
+              masterUniqueIdFilter={masterUniqueIdFilter}
+              setMasterUniqueIdFilter={setMasterUniqueIdFilter}
+              selectedSubmittedByNames={selectedSubmittedByNames}
+              setSelectedSubmittedByNames={setSelectedSubmittedByNames}
+              submittedByOptions={submittedByOptions}
               storeInFilter={storeInFilter}
               setStoreInFilter={setStoreInFilter}
               storeItemDescriptionFilter={storeItemDescriptionFilter}
@@ -2070,8 +2145,7 @@ export default function PurchasePage() {
                 )}
 
                 {selectedOption === "PO Generation" &&
-                  (role === "PSE" || role === "ADMIN") &&
-                  !isDebasishPoUploadOnlyUser && (
+                  canAccessPoBulkUpload && (
                   <PoBulkSection
                     poSelectedRowIds={poSelectedRowIds}
                     poBulkPoNumber={poBulkPoNumber}
@@ -2211,7 +2285,7 @@ export default function PurchasePage() {
                           <th className="px-4 py-3 border-b">Unique Id</th>
                           <th className="px-4 py-3 border-b">I.N</th>
                           <th className="px-4 py-3 border-b">Item No</th>
-                          <th className="px-4 py-3 border-b sticky-item-description sticky-item-description-head">
+                          <th className="px-4 py-3 border-b sticky-item-description sticky-item-description-head store-item-description">
                             Item Description
                           </th>
                           <th className="px-4 py-3 border-b">UOM</th>
@@ -3001,7 +3075,7 @@ export default function PurchasePage() {
                                   <td className="px-4 py-2 border-b">
                                     {row.itemNumber}
                                   </td>
-                                  <td className="px-4 py-2 border-b sticky-item-description">
+                                  <td className="px-4 py-2 border-b sticky-item-description store-item-description">
                                     {row.itemDescription}
                                   </td>
                                   <td className="px-4 py-2 border-b">
@@ -4808,6 +4882,9 @@ export default function PurchasePage() {
                                   finalizeDone &&
                                   approvalDone &&
                                   !isPoAlreadyDone;
+                                const canSelectPoRowForBulk =
+                                  canEditPoDetails ||
+                                  (isDebasishPoUploadOnlyUser && !isPoAlreadyDone);
 
                                 const poStatusValue = dbPoStatus;
 
@@ -4817,7 +4894,7 @@ export default function PurchasePage() {
                                       <input
                                         type="checkbox"
                                         checked={isPoRowSelected(row._id)}
-                                        disabled={!canEditPoDetails}
+                                        disabled={!canSelectPoRowForBulk}
                                         onChange={() =>
                                           togglePoRowSelected(row._id)
                                         }
