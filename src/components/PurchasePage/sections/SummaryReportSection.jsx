@@ -94,6 +94,7 @@ export default function SummaryReportSection({
     }
   }, [pseOptions, selectedPse]);
 
+  // console.log(item, "itemDescription");
   const filteredStageDelayReport = React.useMemo(
     () =>
       trackedStageDelayReport.map((stage) => {
@@ -133,6 +134,7 @@ export default function SummaryReportSection({
       pseName: item.pse,
       remarks: existing?.remarks || "",
       estimatedCompletionDate: existing?.estimatedCompletionDate || "",
+      // itemDescription: item.itemDescription || "",  
       isCompleted: Boolean(existing?.isCompleted),
     });
     setModalError("");
@@ -284,6 +286,7 @@ export default function SummaryReportSection({
                       <th className="px-3 py-2 border-b text-center">Delayed Item Rows</th>
                       <th className="px-3 py-2 border-b text-left">PSE</th>
                       <th className="px-3 py-2 border-b text-left">Site</th>
+                      <th className="px-3 py-2 border-b text-left">Item Descriptions</th>
                       <th className="px-3 py-2 border-b text-left">Section</th>
                       <th className="px-3 py-2 border-b text-center">Estimated Date</th>
                       <th className="px-3 py-2 border-b text-center">Action</th>
@@ -309,6 +312,28 @@ export default function SummaryReportSection({
                           <td className="px-3 py-2 border-b text-center">{item.delayedItemCount}</td>
                           <td className="px-3 py-2 border-b">{item.pse}</td>
                           <td className="px-3 py-2 border-b">{item.site}</td>
+                          <td className="px-3 py-2 border-b align-top">
+                            <div className="max-w-[420px] whitespace-normal break-words leading-5">
+                              {(() => {
+                                const descriptions = String(
+                                  item.itemDescription || "",
+                                )
+                                  .split("|")
+                                  .map((desc) => desc.trim())
+                                  .filter(Boolean);
+
+                                if (!descriptions.length) return "-";
+
+                                return descriptions.map((desc, idx) => (
+                                  <div
+                                    key={`${stage.id}-${item.uniqueId}-desc-${idx}`}
+                                  >
+                                    {desc}
+                                  </div>
+                                ));
+                              })()}
+                            </div>
+                          </td>
                           <td className="px-3 py-2 border-b">{item.section}</td>
                           <td className="px-3 py-2 border-b text-center">
                             {followup?.estimatedCompletionDate || "-"}

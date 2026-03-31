@@ -464,6 +464,7 @@ export default function PurchasePage() {
           pse: String(row.submittedBy || "").trim() || "Unassigned",
           site: String(row.site || "").trim() || "-",
           section: String(row.section || "").trim() || "-",
+          itemDescription: String(row.itemDescription || "").trim(),
           delayDays: parseDelayDays(row[stage.key]),
         }))
         .filter((item) => item.delayDays > 0);
@@ -475,6 +476,7 @@ export default function PurchasePage() {
             ...item,
             delayedItemCount: 1,
             maxDelayDays: item.delayDays,
+            itemDescriptionList: item.itemDescription ? [item.itemDescription] : [],
           });
           return;
         }
@@ -482,14 +484,28 @@ export default function PurchasePage() {
         const existing = groupedByUniqueId.get(item.uniqueId);
         existing.delayedItemCount += 1;
         existing.maxDelayDays = Math.max(existing.maxDelayDays, item.delayDays);
+        if (
+          item.itemDescription &&
+          !existing.itemDescriptionList.includes(item.itemDescription)
+        ) {
+          existing.itemDescriptionList.push(item.itemDescription);
+        }
       });
 
-      const uniqueItems = Array.from(groupedByUniqueId.values()).sort((a, b) => {
-        if (b.maxDelayDays !== a.maxDelayDays) return b.maxDelayDays - a.maxDelayDays;
-        if (b.delayedItemCount !== a.delayedItemCount)
-          return b.delayedItemCount - a.delayedItemCount;
-        return a.uniqueId.localeCompare(b.uniqueId, undefined, { numeric: true });
-      });
+      const uniqueItems = Array.from(groupedByUniqueId.values())
+        .map((item) => ({
+          ...item,
+          itemDescription:
+            Array.isArray(item.itemDescriptionList) && item.itemDescriptionList.length
+              ? item.itemDescriptionList.join(" | ")
+              : "-",
+        }))
+        .sort((a, b) => {
+          if (b.maxDelayDays !== a.maxDelayDays) return b.maxDelayDays - a.maxDelayDays;
+          if (b.delayedItemCount !== a.delayedItemCount)
+            return b.delayedItemCount - a.delayedItemCount;
+          return a.uniqueId.localeCompare(b.uniqueId, undefined, { numeric: true });
+        });
 
       return {
         ...stage,
