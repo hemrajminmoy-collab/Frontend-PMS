@@ -831,7 +831,7 @@ export default function PurchasePage() {
     file,
   }) => {
     const fd = new FormData();
-    fd.append("file", file);
+    if (file) fd.append("file", file);
     fd.append("rowIds", JSON.stringify(rowIds || []));
     fd.append("poNumber", poNumber || "");
     fd.append("poDate", poDate || "");
@@ -853,11 +853,6 @@ export default function PurchasePage() {
     try {
       setPoBulkError("");
       setPoBulkSuccess("");
-
-      if (!poBulkFile) {
-        setPoBulkError("Please choose a PO PDF file.");
-        return;
-      }
 
       if (!poSelectedRowIds.length) {
         setPoBulkError("Please select at least 1 item row to link this PO.");
@@ -891,6 +886,60 @@ export default function PurchasePage() {
 
       setPoBulkUploading(true);
 
+      // Older backends may still require file on /po/bulk.
+      // If no PDF is chosen, apply PO details row-by-row via update endpoint.
+      if (!poBulkFile) {
+        const detailsPayload = {
+          poNumber: poBulkPoNumber,
+          poDate: poBulkPoDate,
+          vendorName: poBulkVendorName,
+          leadDays: parseOptionalNumber(poBulkLeadDays),
+          amount: parseOptionalNumber(poBulkAmount),
+          paymentCondition: poBulkPaymentCondition,
+          papwDays: parseOptionalNumber(poBulkPapwDays),
+        };
+
+        const results = await Promise.allSettled(
+          poSelectedRowIds.map((rid) => updatePurchaseRow(rid, detailsPayload)),
+        );
+
+        const successIds = [];
+        const failed = [];
+        results.forEach((result, idx) => {
+          const rid = poSelectedRowIds[idx];
+          if (result.status === "fulfilled") {
+            successIds.push(rid);
+          } else {
+            failed.push(result.reason);
+          }
+        });
+
+        const rowPatch = {
+          poNumber: poBulkPoNumber,
+          poDate: poBulkPoDate,
+          vendorName: poBulkVendorName,
+          leadDays: parseOptionalNumber(poBulkLeadDays),
+          amount: parseOptionalNumber(poBulkAmount),
+          paymentCondition: poBulkPaymentCondition,
+          papwDays: parseOptionalNumber(poBulkPapwDays),
+        };
+        for (const rid of successIds) {
+          patchRowInTables(rid, rowPatch);
+        }
+
+        if (failed.length > 0) {
+          setPoBulkError(
+            `PO details saved for ${successIds.length}/${poSelectedRowIds.length} item(s). ${failed.length} failed.`,
+          );
+        } else {
+          setPoBulkSuccess(
+            `PO details applied to ${successIds.length} item(s). You can upload PO PDF later.`,
+          );
+          clearPoSelection();
+        }
+        return;
+      }
+
       const res = await createPoAndLinkItems({
         rowIds: poSelectedRowIds,
         poNumber: poBulkPoNumber,
@@ -912,18 +961,22 @@ export default function PurchasePage() {
       const driveFileId = res?.data?.driveFileId || res?.driveFileId || "";
 
       // patch selected rows so Show PO reflects immediately
+      const rowPatch = {
+        poNumber: poBulkPoNumber,
+        poDate: poBulkPoDate,
+        vendorName: poBulkVendorName,
+        leadDays: parseOptionalNumber(poBulkLeadDays),
+        amount: parseOptionalNumber(poBulkAmount),
+        paymentCondition: poBulkPaymentCondition,
+        papwDays: parseOptionalNumber(poBulkPapwDays),
+      };
+      if (webViewLink || driveFileId) {
+        rowPatch.poPdfWebViewLink = webViewLink;
+        rowPatch.poPdfDriveFileId = driveFileId;
+      }
+
       for (const rid of poSelectedRowIds) {
-        patchRowInTables(rid, {
-          poNumber: poBulkPoNumber,
-          poDate: poBulkPoDate,
-          vendorName: poBulkVendorName,
-          leadDays: parseOptionalNumber(poBulkLeadDays),
-          amount: parseOptionalNumber(poBulkAmount),
-          paymentCondition: poBulkPaymentCondition,
-          papwDays: parseOptionalNumber(poBulkPapwDays),
-          poPdfWebViewLink: webViewLink,
-          poPdfDriveFileId: driveFileId,
-        });
+        patchRowInTables(rid, rowPatch);
       }
 
       setPoBulkSuccess(
@@ -4886,11 +4939,18 @@ export default function PurchasePage() {
                                 const finalizeDone = finalizeStatus === "Done";
                                 const approvalDone = approvalStatus === "Done";
 
-                                // ? current db status (use UI first, fallback to DB)
-                                const dbPoStatus = (
+                                // Committed DB status controls lock/final behavior.
+                                const committedPoStatus = (
                                   row.dbPoGenerationStatus ?? ""
                                 ).toString();
-                                const isPoAlreadyDone = dbPoStatus === "Done";
+
+                                // UI can still show in-progress edits before submit.
+                                const poStatusValue = (
+                                  row.poGenerationStatus ??
+                                  committedPoStatus ??
+                                  ""
+                                ).toString();
+                                const isPoAlreadyDone = committedPoStatus === "Done";
 
                                 // PO detail fields are filled by PSE (ADMIN override).
                                 const canEditPoDetails =
@@ -4901,8 +4961,6 @@ export default function PurchasePage() {
                                 const canSelectPoRowForBulk =
                                   canEditPoDetails ||
                                   (isDebasishPoUploadOnlyUser && !isPoAlreadyDone);
-
-                                const poStatusValue = dbPoStatus;
 
                                 return (
                                   <>

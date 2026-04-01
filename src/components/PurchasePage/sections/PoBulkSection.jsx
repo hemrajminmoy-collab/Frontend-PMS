@@ -30,7 +30,7 @@ export default function PoBulkSection({
     <div className="mb-4 border rounded-xl p-4 bg-white shadow-sm">
       <div className="flex flex-col gap-3">
         <div className="font-semibold text-sm text-gray-800">
-          Bulk PO (one PO PDF to many selected items) - Selected:{" "}
+          Bulk PO (details for many selected items, PDF optional) - Selected:{" "}
           {poSelectedRowIds.length}
         </div>
 
@@ -123,7 +123,7 @@ export default function PoBulkSection({
           )}
 
           <div className="flex flex-col">
-            <label className="text-xs text-gray-600">Upload PO PDF</label>
+            <label className="text-xs text-gray-600">Upload PO PDF (optional)</label>
             <input
               key={poBulkFileKey}
               type="file"
@@ -139,7 +139,7 @@ export default function PoBulkSection({
               onClick={handlePoBulkUpload}
               disabled={poBulkUploading}
             >
-              {poBulkUploading ? "Uploading..." : "Upload & Apply"}
+              {poBulkUploading ? "Applying..." : "Apply PO Details"}
             </button>
 
             <button

@@ -371,7 +371,6 @@ export const getPoPdfByRowId = async (rowId) => {
 // ==============================
 
 export const createPoAndLinkItems = async (payload, file) => {
-  if (!file) throw new Error("PO PDF file is required");
   if (
     !payload ||
     !Array.isArray(payload.rowIds) ||
@@ -381,7 +380,7 @@ export const createPoAndLinkItems = async (payload, file) => {
   }
 
   const fd = new FormData();
-  fd.append("file", file);
+  if (file) fd.append("file", file);
 
   Object.keys(payload).forEach((k) => {
     const v = payload[k];
