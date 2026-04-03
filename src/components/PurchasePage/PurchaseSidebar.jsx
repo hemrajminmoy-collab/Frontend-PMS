@@ -13,6 +13,7 @@ export default function PurchaseSidebar({
   const normalizedCurrentUsername = String(currentUsername || "")
     .trim()
     .toLowerCase();
+  const canAddUser = role === "ADMIN" && normalizedCurrentUsername === "minmoy";
   const isDeveloperUser =
     normalizedCurrentUsername === "minmoy" ||
     normalizedCurrentUsername === "mrinmoy";
@@ -55,7 +56,7 @@ export default function PurchaseSidebar({
           </div>
         ))}
 
-        {role === "ADMIN" && (
+        {canAddUser && (
           <div className="mt-8">
             <button
               onClick={onAddUser}

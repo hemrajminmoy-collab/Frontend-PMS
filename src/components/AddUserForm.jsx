@@ -26,9 +26,13 @@ export default function AddUser() {
   }, []);
 
   useEffect(() => {
-    const role = localStorage.getItem("role");
+    const role = String(localStorage.getItem("role") || "").trim().toUpperCase();
+    const username = String(localStorage.getItem("username") || "")
+      .trim()
+      .toLowerCase();
+    const canAddUser = role === "ADMIN" && username === "minmoy";
 
-    if (role !== "ADMIN") {
+    if (!canAddUser) {
       navigate("/"); // route where <PurchasePage /> is rendered
     }
   }, [navigate]);
