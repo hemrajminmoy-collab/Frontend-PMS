@@ -198,6 +198,10 @@ export async function getAuditLogs() {
   return await apiRequest("/audit-logs", "GET");
 }
 
+export async function logUserInputChange(payload) {
+  return await apiRequest("/audit-logs/input", "POST", payload || {});
+}
+
 // ==============================
 // ✅ By Mongo ID
 // ==============================

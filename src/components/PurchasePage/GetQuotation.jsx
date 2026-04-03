@@ -36,6 +36,7 @@ import {
   getAllLocalPurchaseForms,
   updatePurchaseRow,
   updateLocalPurchaseRow,
+  logUserInputChange,
   deleteIndentForm,
   getPurchaseByUniqueId,
   manualCloseStoreUniqueId,
@@ -142,7 +143,16 @@ const getNavLinksByRole = (role, username) => {
         { name: "Summary Report", icon: <FaClipboardList /> },
       ],
     };
-  } else if (role === "ADMIN") {
+  } else if (role === "ADMIN" && normalizedUsername === "Sumona") {
+    menu = {
+      "Executive FMS Section": [
+        { name: "Summary Report", icon: <FaClipboardList /> },
+      ],
+    };
+  }
+  
+  
+  else if (role === "ADMIN") {
     menu = {
       "Executive FMS Section": [
         { name: "PMS Master Sheet", icon: <FaClipboardList /> },
@@ -167,7 +177,7 @@ const getNavLinksByRole = (role, username) => {
     };
   }
 
-  if (isLogViewerUser) {
+  if (isLogViewerUser && (normalizedRole === "ADMIN" && normalizedUsername === "Minmoy") ) {
     const sectionKey = "Executive FMS Section";
     const links = menu[sectionKey] || [];
     if (!links.some((link) => link.name === "System Logs")) {
@@ -234,6 +244,7 @@ export default function PurchasePage() {
   const [filteredData, setFilteredData] = useState([]); // used for Find By filters + Store Manual Closed
   const [changedRows, setChangedRows] = useState({});
   const latestDataRef = useRef([]); // <- always keep freshest data here
+  const inputAuditTimersRef = useRef(new Map());
 
   const [saving, setSaving] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState({});
@@ -278,6 +289,37 @@ export default function PurchasePage() {
     if (!Number.isNaN(rawDate) && rawDate > 0) return rawDate;
 
     return 0;
+  }, []);
+
+  const queueInputAuditLog = useCallback((payload) => {
+    const targetId = String(payload?.targetId || "").trim();
+    const field = String(payload?.field || "").trim();
+    if (!targetId || !field) return;
+
+    const debounceKey = `${targetId}__${field}`;
+    const timers = inputAuditTimersRef.current;
+
+    if (timers.has(debounceKey)) {
+      clearTimeout(timers.get(debounceKey));
+    }
+
+    const timer = setTimeout(async () => {
+      timers.delete(debounceKey);
+      try {
+        await logUserInputChange(payload);
+      } catch (error) {
+        console.error("Input audit log failed:", error?.message || error);
+      }
+    }, 700);
+
+    timers.set(debounceKey, timer);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      inputAuditTimersRef.current.forEach((timer) => clearTimeout(timer));
+      inputAuditTimersRef.current.clear();
+    };
   }, []);
 
   // ---------------------- Store Manual Close (Unique ID) ----------------------
@@ -1449,6 +1491,23 @@ export default function PurchasePage() {
       return;
 
     const today = new Date().toISOString().split("T")[0];
+    const currentRow = (latestDataRef.current || []).find((r) => r?._id === id);
+    const currentUniqueId = String(currentRow?.uniqueId || "").trim();
+    const currentValue = currentRow?.[field];
+    const targetModel = selectedOption === "Local Purchase" ? "LocalPurchase" : "Purchase";
+    const targetSection = selectedOption || "Unknown";
+
+    queueInputAuditLog({
+      action: "USER_INPUT_CHANGE",
+      targetModel,
+      targetId: id,
+      uniqueId: currentUniqueId,
+      field,
+      before: currentValue ?? null,
+      after: value ?? null,
+      section: targetSection,
+      summary: `Input changed: ${field}${currentUniqueId ? ` (${currentUniqueId})` : ""}`,
+    });
 
     const isGetQuotationDone = field === "doerStatus" && value === "Done";
     const isGetQuotationNotDone = field === "doerStatus" && value !== "Done";
@@ -1465,6 +1524,48 @@ export default function PurchasePage() {
 
     const isPoDone = field === "poGenerationStatus" && value === "Done";
     const isPoNotDone = field === "poGenerationStatus" && value !== "Done";
+
+    const derivedFieldChanges = [];
+    if (isGetQuotationDone || isGetQuotationNotDone) {
+      derivedFieldChanges.push({
+        field: "actualGetQuotation",
+        after: isGetQuotationDone ? today : "",
+      });
+    }
+    if (isTechApprovalDone || isTechApprovalNotDone) {
+      derivedFieldChanges.push({
+        field: "actualTechApproval",
+        after: isTechApprovalDone ? today : "",
+      });
+    }
+    if (isCommercialDone || isCommercialNotDone) {
+      derivedFieldChanges.push({
+        field: "actualCommercialNegotiation",
+        after: isCommercialDone ? today : "",
+      });
+    }
+    if (isPoDone || isPoNotDone) {
+      derivedFieldChanges.push({
+        field: "actualPoGeneration",
+        after: isPoDone ? today : "",
+      });
+    }
+
+    derivedFieldChanges.forEach((change) => {
+      const beforeValue = currentRow?.[change.field];
+      if (String(beforeValue ?? "") === String(change.after ?? "")) return;
+      queueInputAuditLog({
+        action: "USER_INPUT_CHANGE",
+        targetModel,
+        targetId: id,
+        uniqueId: currentUniqueId,
+        field: change.field,
+        before: beforeValue ?? null,
+        after: change.after ?? null,
+        section: targetSection,
+        summary: `Auto-updated: ${change.field}${currentUniqueId ? ` (${currentUniqueId})` : ""}`,
+      });
+    });
 
     setTableData((prev) =>
       prev.map((r) => {
