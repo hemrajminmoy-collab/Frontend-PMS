@@ -6,11 +6,24 @@ const makeFollowupKey = (uniqueId, stageId, pseName) =>
     pseName || "",
   ).trim()}`;
 
+const isCompletedValue = (value) => {
+  if (value === true || value === 1) return true;
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
+};
+
+const getTodayDateInputValue = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export default function SummaryReportSection({
   summaryReport = [],
   trackedDelayFields = [],
   trackedStageDelayReport = [],
-  pseStageDelaySummary = [],
   role = "",
   username = "",
 }) {
@@ -25,6 +38,15 @@ export default function SummaryReportSection({
 
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalSaving, setModalSaving] = React.useState(false);
+  const [approvingKey, setApprovingKey] = React.useState("");
+  const [remarksModalOpen, setRemarksModalOpen] = React.useState(false);
+  const [remarksModalData, setRemarksModalData] = React.useState({
+    uniqueId: "",
+    stageLabel: "",
+    pseName: "",
+    estimatedDate: "",
+    remarksEntries: [],
+  });
   const [modalError, setModalError] = React.useState("");
   const [modalSuccess, setModalSuccess] = React.useState("");
   const [modalForm, setModalForm] = React.useState({
@@ -68,25 +90,49 @@ export default function SummaryReportSection({
     return map;
   }, [followupRows]);
 
+  const completedFollowupKeys = React.useMemo(() => {
+    const set = new Set();
+    followupRows.forEach((row) => {
+      if (!isCompletedValue(row?.isCompleted)) return;
+      set.add(makeFollowupKey(row?.uniqueId, row?.stageId, row?.pseName));
+    });
+    return set;
+  }, [followupRows]);
+
+  const pendingStageDelayReport = React.useMemo(
+    () =>
+      trackedStageDelayReport.map((stage) => {
+        const pendingUniqueItems = (stage.uniqueItems || []).filter(
+          (item) => !completedFollowupKeys.has(makeFollowupKey(item.uniqueId, stage.id, item.pse)),
+        );
+
+        const delayedItems = pendingUniqueItems.reduce(
+          (acc, item) => acc + (Number(item.delayedItemCount) || 0),
+          0,
+        );
+
+        return {
+          ...stage,
+          uniqueItems: pendingUniqueItems,
+          delayedUniqueIds: pendingUniqueItems.length,
+          delayedItems,
+        };
+      }),
+    [trackedStageDelayReport, completedFollowupKeys],
+  );
+
   const pseOptions = React.useMemo(() => {
     const names = new Set();
 
-    trackedStageDelayReport.forEach((stage) => {
+    pendingStageDelayReport.forEach((stage) => {
       (stage.uniqueItems || []).forEach((item) => {
         const name = String(item.pse || "").trim();
         if (name) names.add(name);
       });
     });
 
-    if (names.size === 0) {
-      pseStageDelaySummary.forEach((row) => {
-        const name = String(row?.pse || "").trim();
-        if (name) names.add(name);
-      });
-    }
-
     return Array.from(names).sort((a, b) => a.localeCompare(b));
-  }, [trackedStageDelayReport, pseStageDelaySummary]);
+  }, [pendingStageDelayReport]);
 
   React.useEffect(() => {
     if (selectedPse !== "ALL" && !pseOptions.includes(selectedPse)) {
@@ -97,7 +143,7 @@ export default function SummaryReportSection({
   // console.log(item, "itemDescription");
   const filteredStageDelayReport = React.useMemo(
     () =>
-      trackedStageDelayReport.map((stage) => {
+      pendingStageDelayReport.map((stage) => {
         const filteredUniqueItems =
           selectedPse === "ALL"
             ? stage.uniqueItems || []
@@ -115,13 +161,71 @@ export default function SummaryReportSection({
           delayedItems,
         };
       }),
-    [trackedStageDelayReport, selectedPse],
+    [pendingStageDelayReport, selectedPse],
   );
 
+  const pendingPseStageDelaySummary = React.useMemo(() => {
+    const summaryByPse = new Map();
+
+    const buildEmptySectionSummary = () =>
+      trackedDelayFields.reduce((acc, stage) => {
+        acc[stage.id] = {
+          label: stage.label,
+          uniqueIds: 0,
+          items: 0,
+        };
+        return acc;
+      }, {});
+
+    pendingStageDelayReport.forEach((stage) => {
+      (stage.uniqueItems || []).forEach((item) => {
+        const pse = item.pse || "Unassigned";
+
+        if (!summaryByPse.has(pse)) {
+          summaryByPse.set(pse, {
+            pse,
+            sectionDelaySummary: buildEmptySectionSummary(),
+          });
+        }
+
+        const row = summaryByPse.get(pse);
+        const bucket = row.sectionDelaySummary?.[stage.id];
+        if (!bucket) return;
+
+        bucket.uniqueIds += 1;
+        bucket.items += Number(item.delayedItemCount) || 0;
+      });
+    });
+
+    return Array.from(summaryByPse.values())
+      .map((entry) => {
+        const stageSummaries = Object.values(entry.sectionDelaySummary || {});
+        const totalUniqueIds = stageSummaries.reduce(
+          (acc, stageSummary) => acc + (Number(stageSummary.uniqueIds) || 0),
+          0,
+        );
+        const totalItems = stageSummaries.reduce(
+          (acc, stageSummary) => acc + (Number(stageSummary.items) || 0),
+          0,
+        );
+
+        return {
+          ...entry,
+          totalUniqueIds,
+          totalItems,
+        };
+      })
+      .sort((a, b) => {
+        if (b.totalUniqueIds !== a.totalUniqueIds) return b.totalUniqueIds - a.totalUniqueIds;
+        if (b.totalItems !== a.totalItems) return b.totalItems - a.totalItems;
+        return a.pse.localeCompare(b.pse);
+      });
+  }, [pendingStageDelayReport, trackedDelayFields]);
+
   const filteredPseStageDelaySummary = React.useMemo(() => {
-    if (selectedPse === "ALL") return pseStageDelaySummary;
-    return pseStageDelaySummary.filter((row) => row.pse === selectedPse);
-  }, [pseStageDelaySummary, selectedPse]);
+    if (selectedPse === "ALL") return pendingPseStageDelaySummary;
+    return pendingPseStageDelaySummary.filter((row) => row.pse === selectedPse);
+  }, [pendingPseStageDelaySummary, selectedPse]);
 
   const openFollowupModal = (stage, item) => {
     const key = makeFollowupKey(item.uniqueId, stage.id, item.pse);
@@ -135,7 +239,7 @@ export default function SummaryReportSection({
       remarks: existing?.remarks || "",
       estimatedCompletionDate: existing?.estimatedCompletionDate || "",
       // itemDescription: item.itemDescription || "",  
-      isCompleted: Boolean(existing?.isCompleted),
+      isCompleted: isCompletedValue(existing?.isCompleted),
     });
     setModalError("");
     setModalSuccess("");
@@ -174,6 +278,81 @@ export default function SummaryReportSection({
       setModalError(err?.message || "Failed to save followup.");
     } finally {
       setModalSaving(false);
+    }
+  };
+
+  const openRemarksForDate = (stage, item, followup) => {
+    if (!followup?.estimatedCompletionDate) return;
+
+    const selectedDate = String(followup.estimatedCompletionDate || "").trim();
+    const remarksEntries = [];
+
+    const currentRemarks = String(followup.remarks || "").trim();
+    if (
+      selectedDate &&
+      String(followup.estimatedCompletionDate || "").trim() === selectedDate &&
+      currentRemarks
+    ) {
+      remarksEntries.push({
+        source: "Current",
+        remarks: currentRemarks,
+        changedAt: followup.updatedAt || followup.createdAt || "",
+      });
+    }
+
+    const historyMatches = (followup.estimateHistory || [])
+      .filter(
+        (entry) =>
+          String(entry?.estimatedCompletionDate || "").trim() === selectedDate &&
+          String(entry?.remarks || "").trim(),
+      )
+      .map((entry) => ({
+        source: "History",
+        remarks: String(entry?.remarks || "").trim(),
+        changedAt: entry?.changedAt || "",
+      }));
+
+    setRemarksModalData({
+      uniqueId: String(item?.uniqueId || ""),
+      stageLabel: String(stage?.label || ""),
+      pseName: String(item?.pse || ""),
+      estimatedDate: selectedDate,
+      remarksEntries: [...remarksEntries, ...historyMatches],
+    });
+    setRemarksModalOpen(true);
+  };
+
+  const handleAdminApproveCompleted = async (stage, item, followup) => {
+    if (!isAdmin) return;
+
+    const key = makeFollowupKey(item.uniqueId, stage.id, item.pse);
+    const approvedDate = String(followup?.estimatedCompletionDate || "").trim() || getTodayDateInputValue();
+
+    try {
+      setApprovingKey(key);
+      setFollowupError("");
+      const res = await upsertDelayFollowup({
+        uniqueId: item.uniqueId,
+        stageId: stage.id,
+        stageLabel: stage.label,
+        pseName: item.pse,
+        remarks: followup?.remarks || "",
+        estimatedCompletionDate: approvedDate,
+        isCompleted: true,
+        role,
+        username,
+      });
+
+      if (!res?.success) {
+        setFollowupError(res?.message || "Failed to approve completion.");
+        return;
+      }
+
+      await fetchFollowups();
+    } catch (err) {
+      setFollowupError(err?.message || "Failed to approve completion.");
+    } finally {
+      setApprovingKey("");
     }
   };
 
@@ -295,7 +474,7 @@ export default function SummaryReportSection({
                   <tbody>
                     {stage.uniqueItems.length === 0 && (
                       <tr>
-                        <td className="px-3 py-3 text-center text-gray-500" colSpan={8}>
+                        <td className="px-3 py-3 text-center text-gray-500" colSpan={9}>
                           No delayed items.
                         </td>
                       </tr>
@@ -336,16 +515,51 @@ export default function SummaryReportSection({
                           </td>
                           <td className="px-3 py-2 border-b">{item.section}</td>
                           <td className="px-3 py-2 border-b text-center">
-                            {followup?.estimatedCompletionDate || "-"}
+                            {followup?.estimatedCompletionDate ? (
+                              <button
+                                type="button"
+                                onClick={() => openRemarksForDate(stage, item, followup)}
+                                className="text-blue-700 underline decoration-dotted hover:text-blue-900"
+                              >
+                                {followup.estimatedCompletionDate}
+                              </button>
+                            ) : (
+                              "-"
+                            )}
                           </td>
                           <td className="px-3 py-2 border-b text-center">
-                            <button
-                              type="button"
-                              onClick={() => openFollowupModal(stage, item)}
-                              className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
-                            >
-                              {followup ? "Update" : "Fill Up"}
-                            </button>
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openFollowupModal(stage, item)}
+                                className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
+                              >
+                                {followup ? "Update" : "Fill Up"}
+                              </button>
+                              {isAdmin && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAdminApproveCompleted(stage, item, followup)}
+                                  disabled={
+                                    approvingKey === makeFollowupKey(item.uniqueId, stage.id, item.pse)
+                                  }
+                                  className={`px-3 py-1 rounded text-white ${
+                                    approvingKey === makeFollowupKey(item.uniqueId, stage.id, item.pse)
+                                      ? "bg-gray-400 cursor-not-allowed"
+                                      : "bg-green-600 hover:bg-green-700"
+                                  }`}
+                                  title={
+                                    followup?.estimatedCompletionDate
+                                      ? "Approve this row as completed"
+                                      : "Approve completed and auto-save today's date"
+                                  }
+                                >
+                                  {approvingKey === makeFollowupKey(item.uniqueId, stage.id, item.pse)
+                                    ? "Approving..."
+                                    : "Approve Completed"}
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -481,6 +695,7 @@ export default function SummaryReportSection({
                     <input
                       type="checkbox"
                       checked={modalForm.isCompleted}
+                      disabled={!isAdmin}
                       onChange={(e) =>
                         setModalForm((prev) => ({
                           ...prev,
@@ -488,7 +703,7 @@ export default function SummaryReportSection({
                         }))
                       }
                     />
-                    Mark as Completed
+                    Mark as Completed {isAdmin ? "" : "(Admin only)"}
                   </label>
                 </div>
                 <div className="md:col-span-2">
@@ -532,6 +747,61 @@ export default function SummaryReportSection({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {remarksModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-xl rounded-2xl bg-white shadow-xl border">
+            <div className="px-5 py-4 border-b flex items-center justify-between">
+              <div className="text-base font-semibold text-gray-800">Remarks for Estimated Date</div>
+              <button
+                type="button"
+                onClick={() => setRemarksModalOpen(false)}
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-gray-700">
+                <div>
+                  <span className="font-semibold">Unique ID:</span> {remarksModalData.uniqueId || "-"}
+                </div>
+                <div>
+                  <span className="font-semibold">PSE:</span> {remarksModalData.pseName || "-"}
+                </div>
+                <div className="md:col-span-2">
+                  <span className="font-semibold">Stage:</span> {remarksModalData.stageLabel || "-"}
+                </div>
+                <div className="md:col-span-2">
+                  <span className="font-semibold">Estimated Date:</span>{" "}
+                  {remarksModalData.estimatedDate || "-"}
+                </div>
+              </div>
+
+              <div className="border rounded-lg overflow-hidden">
+                <div className="bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-700">
+                  Remarks
+                </div>
+                <div className="p-4 space-y-3">
+                  {remarksModalData.remarksEntries.length === 0 && (
+                    <div className="text-gray-500">No remarks available for this date.</div>
+                  )}
+                  {remarksModalData.remarksEntries.map((entry, idx) => (
+                    <div key={`remark-row-${idx}`} className="rounded border border-gray-200 p-3">
+                      <div className="text-xs text-gray-500 mb-1">
+                        {entry.source}
+                        {entry.changedAt ? ` | ${new Date(entry.changedAt).toLocaleString()}` : ""}
+                      </div>
+                      <div className="text-gray-800">{entry.remarks || "-"}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

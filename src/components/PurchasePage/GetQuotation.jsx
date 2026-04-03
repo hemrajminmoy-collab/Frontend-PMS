@@ -4189,7 +4189,9 @@ export default function PurchasePage() {
                                     const alreadyUploaded = Boolean(
                                       row.poPdfWebViewLink,
                                     );
-                                    const canReupload = role === "ADMIN";
+                                    const canReupload =
+                                      role === "ADMIN" ||
+                                      isDebasishPoUploadOnlyUser;
                                     const canUpload =
                                       hasUploadRole &&
                                       (canReupload || !alreadyUploaded);
@@ -4960,7 +4962,7 @@ export default function PurchasePage() {
                                   !isPoAlreadyDone;
                                 const canSelectPoRowForBulk =
                                   canEditPoDetails ||
-                                  (isDebasishPoUploadOnlyUser && !isPoAlreadyDone);
+                                  isDebasishPoUploadOnlyUser;
 
                                 return (
                                   <>
@@ -5056,7 +5058,9 @@ export default function PurchasePage() {
                                         const alreadyUploaded = Boolean(
                                           row.poPdfWebViewLink,
                                         );
-                                        const canReupload = role === "ADMIN";
+                                        const canReupload =
+                                          role === "ADMIN" ||
+                                          isDebasishPoUploadOnlyUser;
                                         const canUpload =
                                           hasUploadRole &&
                                           (canReupload || !alreadyUploaded);
@@ -5257,7 +5261,9 @@ export default function PurchasePage() {
                                     const alreadyUploaded = Boolean(
                                       row.poPdfWebViewLink,
                                     );
-                                    const canReupload = role === "ADMIN";
+                                    const canReupload =
+                                      role === "ADMIN" ||
+                                      isDebasishPoUploadOnlyUser;
                                     const canUpload =
                                       hasUploadRole &&
                                       (canReupload || !alreadyUploaded);
