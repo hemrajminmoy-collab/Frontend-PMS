@@ -1,6 +1,12 @@
 import React from "react";
 import { getDelayFollowups } from "../../../api/IndentForm.api";
 
+const isCompletedValue = (value) => {
+  if (value === true || value === 1) return true;
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
+};
+
 export default function DelayFollowupSection({ role = "", username = "" }) {
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
@@ -184,6 +190,8 @@ export default function DelayFollowupSection({ role = "", username = "" }) {
             {!loading &&
               filteredRows.map((row) => {
                 const allEstimatedDates = getAllEstimatedDates(row);
+                const isApproved = isCompletedValue(row?.isCompleted);
+                const currentEstimatedDate = String(row?.estimatedCompletionDate || "").trim();
                 return (
                   <tr
                     key={`${row.uniqueId || ""}-${row.stageId || ""}-${row.pseName || ""}`}
@@ -197,7 +205,12 @@ export default function DelayFollowupSection({ role = "", username = "" }) {
                         <button
                           type="button"
                           onClick={() => openRemarksByDate(row, row.estimatedCompletionDate)}
-                          className="text-blue-700 underline decoration-dotted hover:text-blue-900"
+                          className={`underline decoration-dotted ${
+                            isApproved
+                              ? "text-green-700 hover:text-green-900 font-semibold"
+                              : "text-blue-700 hover:text-blue-900"
+                          }`}
+                          title={isApproved ? "Approved date" : "Pending date"}
                         >
                           {row.estimatedCompletionDate}
                         </button>
@@ -208,16 +221,24 @@ export default function DelayFollowupSection({ role = "", username = "" }) {
                     <td className="px-3 py-2 border-b">
                       <div className="flex flex-wrap gap-1">
                         {allEstimatedDates.length ? (
-                          allEstimatedDates.map((d) => (
-                            <button
-                              key={`${row._id || row.uniqueId}-${d}`}
-                              type="button"
-                              onClick={() => openRemarksByDate(row, d)}
-                              className="px-2 py-0.5 rounded bg-gray-100 border text-[11px] hover:bg-gray-200"
-                            >
-                              {d}
-                            </button>
-                          ))
+                          allEstimatedDates.map((d) => {
+                            const isApprovedDate = isApproved && String(d || "").trim() === currentEstimatedDate;
+                            return (
+                              <button
+                                key={`${row._id || row.uniqueId}-${d}`}
+                                type="button"
+                                onClick={() => openRemarksByDate(row, d)}
+                                className={`px-2 py-0.5 rounded border text-[11px] ${
+                                  isApprovedDate
+                                    ? "bg-green-100 border-green-300 text-green-800 hover:bg-green-200"
+                                    : "bg-gray-100 border-gray-300 text-gray-800 hover:bg-gray-200"
+                                }`}
+                                title={isApprovedDate ? "Approved date" : "Estimated date"}
+                              >
+                                {d}
+                              </button>
+                            );
+                          })
                         ) : (
                           <span className="text-gray-500">-</span>
                         )}

@@ -39,6 +39,13 @@ export default function SummaryReportSection({
   const [modalOpen, setModalOpen] = React.useState(false);
   const [modalSaving, setModalSaving] = React.useState(false);
   const [approvingKey, setApprovingKey] = React.useState("");
+  const [approveConfirmModalOpen, setApproveConfirmModalOpen] = React.useState(false);
+  const [approveConfirmData, setApproveConfirmData] = React.useState({
+    stage: null,
+    item: null,
+    followup: null,
+    approvedDate: "",
+  });
   const [remarksModalOpen, setRemarksModalOpen] = React.useState(false);
   const [remarksModalData, setRemarksModalData] = React.useState({
     uniqueId: "",
@@ -228,6 +235,11 @@ export default function SummaryReportSection({
   }, [pendingPseStageDelaySummary, selectedPse]);
 
   const openFollowupModal = (stage, item) => {
+    if (!isAdmin) {
+      setFollowupError("Only ADMIN can fill/update followup from Summary Report.");
+      return;
+    }
+
     const key = makeFollowupKey(item.uniqueId, stage.id, item.pse);
     const existing = followupByKey.get(key);
 
@@ -250,6 +262,11 @@ export default function SummaryReportSection({
     e.preventDefault();
     setModalError("");
     setModalSuccess("");
+
+    if (!isAdmin) {
+      setModalError("Only ADMIN can save followup.");
+      return;
+    }
 
     if (!modalForm.estimatedCompletionDate) {
       setModalError("Estimated completed date is required.");
@@ -323,7 +340,7 @@ export default function SummaryReportSection({
   };
 
   const handleAdminApproveCompleted = async (stage, item, followup) => {
-    if (!isAdmin) return;
+    if (!isAdmin) return false;
 
     const key = makeFollowupKey(item.uniqueId, stage.id, item.pse);
     const approvedDate = String(followup?.estimatedCompletionDate || "").trim() || getTodayDateInputValue();
@@ -345,14 +362,47 @@ export default function SummaryReportSection({
 
       if (!res?.success) {
         setFollowupError(res?.message || "Failed to approve completion.");
-        return;
+        return false;
       }
 
       await fetchFollowups();
+      return true;
     } catch (err) {
       setFollowupError(err?.message || "Failed to approve completion.");
+      return false;
     } finally {
       setApprovingKey("");
+    }
+  };
+
+  const openApproveConfirmModal = (stage, item, followup) => {
+    if (!isAdmin) return;
+
+    const approvedDate = String(followup?.estimatedCompletionDate || "").trim() || getTodayDateInputValue();
+    setApproveConfirmData({
+      stage,
+      item,
+      followup,
+      approvedDate,
+    });
+    setApproveConfirmModalOpen(true);
+  };
+
+  const handleConfirmApproveFromModal = async () => {
+    const stage = approveConfirmData?.stage;
+    const item = approveConfirmData?.item;
+    const followup = approveConfirmData?.followup;
+    if (!stage || !item) return;
+
+    const success = await handleAdminApproveCompleted(stage, item, followup);
+    if (success) {
+      setApproveConfirmModalOpen(false);
+      setApproveConfirmData({
+        stage: null,
+        item: null,
+        followup: null,
+        approvedDate: "",
+      });
     }
   };
 
@@ -395,7 +445,9 @@ export default function SummaryReportSection({
           Delay Tracker (Custom Workflow Sections)
         </div>
         <div className="mb-4 text-xs text-gray-600">
-          Fill-up action is available here. Saved estimated dates will appear in Delay Followup.
+          {isAdmin
+            ? "Fill-up action is available here. Saved estimated dates will appear in Delay Followup."
+            : "View-only mode. Only ADMIN can fill/update followup here."}
         </div>
         {followupError && (
           <div className="mb-4 text-xs text-red-600">{followupError}</div>
@@ -464,6 +516,7 @@ export default function SummaryReportSection({
                       <th className="px-3 py-2 border-b text-center">Time Delay (days)</th>
                       <th className="px-3 py-2 border-b text-center">Delayed Item Rows</th>
                       <th className="px-3 py-2 border-b text-left">PSE</th>
+                      <th className="px-3 py-2 border-b text-left">Doer Name</th>
                       <th className="px-3 py-2 border-b text-left">Site</th>
                       <th className="px-3 py-2 border-b text-left">Item Descriptions</th>
                       <th className="px-3 py-2 border-b text-left">Section</th>
@@ -474,7 +527,7 @@ export default function SummaryReportSection({
                   <tbody>
                     {stage.uniqueItems.length === 0 && (
                       <tr>
-                        <td className="px-3 py-3 text-center text-gray-500" colSpan={9}>
+                        <td className="px-3 py-3 text-center text-gray-500" colSpan={10}>
                           No delayed items.
                         </td>
                       </tr>
@@ -490,6 +543,7 @@ export default function SummaryReportSection({
                           <td className="px-3 py-2 border-b text-center">{item.maxDelayDays}</td>
                           <td className="px-3 py-2 border-b text-center">{item.delayedItemCount}</td>
                           <td className="px-3 py-2 border-b">{item.pse}</td>
+                          <td className="px-3 py-2 border-b">{item.doerName || "-"}</td>
                           <td className="px-3 py-2 border-b">{item.site}</td>
                           <td className="px-3 py-2 border-b align-top">
                             <div className="max-w-[420px] whitespace-normal break-words leading-5">
@@ -528,18 +582,18 @@ export default function SummaryReportSection({
                             )}
                           </td>
                           <td className="px-3 py-2 border-b text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => openFollowupModal(stage, item)}
-                                className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
-                              >
-                                {followup ? "Update" : "Fill Up"}
-                              </button>
-                              {isAdmin && (
+                            {isAdmin ? (
+                              <div className="flex items-center justify-center gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => handleAdminApproveCompleted(stage, item, followup)}
+                                  onClick={() => openFollowupModal(stage, item)}
+                                  className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
+                                >
+                                  {followup ? "Update" : "Fill Up"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openApproveConfirmModal(stage, item, followup)}
                                   disabled={
                                     approvingKey === makeFollowupKey(item.uniqueId, stage.id, item.pse)
                                   }
@@ -558,8 +612,10 @@ export default function SummaryReportSection({
                                     ? "Approving..."
                                     : "Approve Completed"}
                                 </button>
-                              )}
-                            </div>
+                              </div>
+                            ) : (
+                              <span className="text-gray-500">Admin only</span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -631,7 +687,7 @@ export default function SummaryReportSection({
         </div>
       )}
 
-      {modalOpen && (
+      {modalOpen && isAdmin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl border">
             <div className="px-5 py-4 border-b flex items-center justify-between">
@@ -747,6 +803,88 @@ export default function SummaryReportSection({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {approveConfirmModalOpen && isAdmin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl border">
+            <div className="px-5 py-4 border-b flex items-center justify-between">
+              <div className="text-base font-semibold text-gray-800">Confirm Approve Completed</div>
+              <button
+                type="button"
+                onClick={() => setApproveConfirmModalOpen(false)}
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-sm text-gray-700">
+              <div>
+                Please cross-check details before approving this item as completed.
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div>
+                  <span className="font-semibold">Unique ID:</span>{" "}
+                  {approveConfirmData?.item?.uniqueId || "-"}
+                </div>
+                <div>
+                  <span className="font-semibold">PSE:</span>{" "}
+                  {approveConfirmData?.item?.pse || "-"}
+                </div>
+                <div className="md:col-span-2">
+                  <span className="font-semibold">Stage:</span>{" "}
+                  {approveConfirmData?.stage?.label || "-"}
+                </div>
+                <div className="md:col-span-2">
+                  <span className="font-semibold">Completion Date:</span>{" "}
+                  {approveConfirmData?.approvedDate || "-"}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 py-4 border-t flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setApproveConfirmModalOpen(false)}
+                className="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmApproveFromModal}
+                disabled={
+                  approvingKey ===
+                  makeFollowupKey(
+                    approveConfirmData?.item?.uniqueId,
+                    approveConfirmData?.stage?.id,
+                    approveConfirmData?.item?.pse,
+                  )
+                }
+                className={`px-4 py-2 rounded text-white ${
+                  approvingKey ===
+                  makeFollowupKey(
+                    approveConfirmData?.item?.uniqueId,
+                    approveConfirmData?.stage?.id,
+                    approveConfirmData?.item?.pse,
+                  )
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700"
+                }`}
+              >
+                {approvingKey ===
+                makeFollowupKey(
+                  approveConfirmData?.item?.uniqueId,
+                  approveConfirmData?.stage?.id,
+                  approveConfirmData?.item?.pse,
+                )
+                  ? "Approving..."
+                  : "Confirm Approve"}
+              </button>
+            </div>
           </div>
         </div>
       )}

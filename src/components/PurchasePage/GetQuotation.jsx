@@ -501,14 +501,22 @@ export default function PurchasePage() {
 
     return trackedDelayFields.map((stage) => {
       const delayedRows = rows
-        .map((row) => ({
-          uniqueId: String(row.uniqueId || row._id || "").trim() || "N/A",
-          pse: String(row.submittedBy || "").trim() || "Unassigned",
-          site: String(row.site || "").trim() || "-",
-          section: String(row.section || "").trim() || "-",
-          itemDescription: String(row.itemDescription || "").trim(),
-          delayDays: parseDelayDays(row[stage.key]),
-        }))
+        .map((row) => {
+          const submittedBy = String(row.submittedBy || "").trim();
+          const doerName = String(
+            row.doerName || row.dbDoerName || submittedBy || "",
+          ).trim();
+
+          return {
+            uniqueId: String(row.uniqueId || row._id || "").trim() || "N/A",
+            pse: submittedBy || "Unassigned",
+            doerName: doerName || "-",
+            site: String(row.site || "").trim() || "-",
+            section: String(row.section || "").trim() || "-",
+            itemDescription: String(row.itemDescription || "").trim(),
+            delayDays: parseDelayDays(row[stage.key]),
+          };
+        })
         .filter((item) => item.delayDays > 0);
 
       const groupedByUniqueId = new Map();
@@ -518,6 +526,10 @@ export default function PurchasePage() {
             ...item,
             delayedItemCount: 1,
             maxDelayDays: item.delayDays,
+            doerNameList:
+              item.doerName && item.doerName !== "-"
+                ? [item.doerName]
+                : [],
             itemDescriptionList: item.itemDescription ? [item.itemDescription] : [],
           });
           return;
@@ -526,6 +538,13 @@ export default function PurchasePage() {
         const existing = groupedByUniqueId.get(item.uniqueId);
         existing.delayedItemCount += 1;
         existing.maxDelayDays = Math.max(existing.maxDelayDays, item.delayDays);
+        if (
+          item.doerName &&
+          item.doerName !== "-" &&
+          !existing.doerNameList.includes(item.doerName)
+        ) {
+          existing.doerNameList.push(item.doerName);
+        }
         if (
           item.itemDescription &&
           !existing.itemDescriptionList.includes(item.itemDescription)
@@ -537,6 +556,10 @@ export default function PurchasePage() {
       const uniqueItems = Array.from(groupedByUniqueId.values())
         .map((item) => ({
           ...item,
+          doerName:
+            Array.isArray(item.doerNameList) && item.doerNameList.length
+              ? item.doerNameList.join(" | ")
+              : "-",
           itemDescription:
             Array.isArray(item.itemDescriptionList) && item.itemDescriptionList.length
               ? item.itemDescriptionList.join(" | ")
