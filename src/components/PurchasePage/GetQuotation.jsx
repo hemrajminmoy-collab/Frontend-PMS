@@ -101,6 +101,8 @@ const getNavLinksByRole = (role, username) => {
       "Executive FMS Section": [
         { name: "PC Follow Up", icon: <FaPhoneAlt /> },
         { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
+        { name: "Transport", icon: <FaShip /> },
+
       ],
     };
   } 
@@ -147,6 +149,7 @@ const getNavLinksByRole = (role, username) => {
     menu = {
       "Executive FMS Section": [
         { name: "Summary Report", icon: <FaClipboardList /> },
+        { name: "Transport", icon: <FaShip /> },
       ],
     };
   }
