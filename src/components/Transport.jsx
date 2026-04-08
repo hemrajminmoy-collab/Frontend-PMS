@@ -353,7 +353,8 @@ export default function Transport() {
 
               <tbody>
                 {existingRows
-                  .filter((row) => {
+                  .map((row, originalIndex) => ({ row, originalIndex }))
+                  .filter(({ row }) => {
                     const uid = String(row.uniqueId || "").toLowerCase();
                     const uidFilter = String(uniqueIdFilter || "").toLowerCase().trim();
                     if (uidFilter && !uid.includes(uidFilter)) return false;
@@ -372,8 +373,8 @@ export default function Transport() {
 
                     return inRange(start) || inRange(received);
                   })
-                  .map((row, index) => (
-                  <tr key={row._id || `existing-${index}`}>
+                  .map(({ row, originalIndex }) => (
+                  <tr key={row._id || `existing-${originalIndex}`}>
                     {columns.map((col) => (
                       <td key={col.key} className="border-b px-2 py-1">
                         <input
@@ -383,7 +384,7 @@ export default function Transport() {
                           onChange={(e) =>
                             handleChange(
                               setExistingRows,
-                              index,
+                              originalIndex,
                               col.key,
                               e.target.value
                             )
