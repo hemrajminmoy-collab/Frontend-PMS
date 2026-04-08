@@ -345,6 +345,8 @@ export default function PurchasePage() {
   const [storeInFilter, setStoreInFilter] = useState("");
   const [storeItemDescriptionFilter, setStoreItemDescriptionFilter] =
     useState("");
+  const [poNumberFilter, setPoNumberFilter] = useState("");
+  const [vendorNameFilter, setVendorNameFilter] = useState("");
   const [date, setDate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -1432,6 +1434,30 @@ export default function PurchasePage() {
         rows = rows.filter((item) => (item.doerName || "") === selectedName);
       }
 
+      // -------- FILTER BY PO NUMBER --------
+      if (findBy === "PoNumber") {
+        const q = String(poNumberFilter || "").trim().toLowerCase();
+        if (q) {
+          rows = rows.filter((item) =>
+            String(item.poNumber || "")
+              .toLowerCase()
+              .includes(q),
+          );
+        }
+      }
+
+      // -------- FILTER BY VENDOR NAME --------
+      if (findBy === "VendorName") {
+        const q = String(vendorNameFilter || "").trim().toLowerCase();
+        if (q) {
+          rows = rows.filter((item) =>
+            String(item.vendorName || "")
+              .toLowerCase()
+              .includes(q),
+          );
+        }
+      }
+
       // -------- PMS MASTER SHEET: FILTER BY UNIQUE ID --------
       if (selectedOption === "PMS Master Sheet" && findBy === "UniqueId") {
         const q = String(masterUniqueIdFilter || "").trim().toLowerCase();
@@ -1509,6 +1535,8 @@ export default function PurchasePage() {
     findBy,
     selectedSite,
     selectedName,
+    poNumberFilter,
+    vendorNameFilter,
     masterUniqueIdFilter,
     selectedSubmittedByNames,
     storeInFilter,
@@ -1530,6 +1558,8 @@ export default function PurchasePage() {
     setSelectedSubmittedByNames([]);
     setStoreInFilter("");
     setStoreItemDescriptionFilter("");
+    setPoNumberFilter("");
+    setVendorNameFilter("");
     setDate("");
     setStartDate("");
     setEndDate("");
@@ -2371,6 +2401,10 @@ export default function PurchasePage() {
               setStoreInFilter={setStoreInFilter}
               storeItemDescriptionFilter={storeItemDescriptionFilter}
               setStoreItemDescriptionFilter={setStoreItemDescriptionFilter}
+              poNumberFilter={poNumberFilter}
+              setPoNumberFilter={setPoNumberFilter}
+              vendorNameFilter={vendorNameFilter}
+              setVendorNameFilter={setVendorNameFilter}
               date={date}
               setDate={setDate}
               startDate={startDate}

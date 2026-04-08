@@ -24,6 +24,10 @@ export default function PurchaseFilterBar({
   setStoreInFilter,
   storeItemDescriptionFilter,
   setStoreItemDescriptionFilter,
+  poNumberFilter,
+  setPoNumberFilter,
+  vendorNameFilter,
+  setVendorNameFilter,
   date,
   setDate,
   startDate,
@@ -132,6 +136,8 @@ export default function PurchaseFilterBar({
           <option value="Date">Date</option>
           <option value="DateRange">Date Range</option>
           <option value="Name">Name</option>
+          <option value="PoNumber">PO Number</option>
+          <option value="VendorName">Vendor Name</option>
           {selectedOption === "PMS Master Sheet" && (
             <option value="UniqueId">Unique Number</option>
           )}
@@ -202,6 +208,26 @@ export default function PurchaseFilterBar({
             <option value="Local 2">Local Purchase 2</option>
             <option value="Local 3">Local Purchase 3</option>
           </select>
+        )}
+
+        {findBy === "PoNumber" && (
+          <input
+            type="text"
+            className="border p-1 rounded-lg text-xs min-w-[180px]"
+            value={poNumberFilter}
+            onChange={(e) => setPoNumberFilter(e.target.value)}
+            placeholder="Enter PO Number"
+          />
+        )}
+
+        {findBy === "VendorName" && (
+          <input
+            type="text"
+            className="border p-1 rounded-lg text-xs min-w-[200px]"
+            value={vendorNameFilter}
+            onChange={(e) => setVendorNameFilter(e.target.value)}
+            placeholder="Enter Vendor Name"
+          />
         )}
 
         {selectedOption === "PMS Master Sheet" && findBy === "UniqueId" && (
