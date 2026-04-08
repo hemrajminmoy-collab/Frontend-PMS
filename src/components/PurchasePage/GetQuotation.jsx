@@ -93,10 +93,12 @@ const getNavLinksByRole = (role, username) => {
         { name: "PO Generation", icon: <FaFileSignature /> },
         { name: "Material Received", icon: <FaTruck /> },
         { name: "Local Purchase", icon: <FaStore /> },
+        { name: "PC Follow Up", icon: <FaPhoneAlt /> },
         { name: "Summary Report", icon: <FaClipboardList /> },
       ],
     };
-  } else if (role === "PC" && normalizedUsername === "Anindita Chakraborty") {
+  }
+  else if (role === "PC" && normalizedUsername === "Anindita Chakraborty") {
     menu = {
       "Executive FMS Section": [
         { name: "PC Follow Up", icon: <FaPhoneAlt /> },
@@ -434,6 +436,103 @@ export default function PurchasePage() {
     return Number(m[1]) || 0;
   }, []);
 
+  const isDoneStatus = useCallback((value) => {
+    return String(value || "").trim().toUpperCase() === "DONE";
+  }, []);
+
+  const getEffectiveStatusValue = useCallback((row, liveField, dbField) => {
+    const liveValue = row?.[liveField];
+    if (liveValue !== undefined && liveValue !== null && String(liveValue).trim() !== "") {
+      return liveValue;
+    }
+    return dbField ? row?.[dbField] : "";
+  }, []);
+
+  const isDelayStageCompleted = useCallback(
+    (row, delayKey, stageId = "") => {
+      if (!row) return false;
+
+      switch (delayKey) {
+        case "timeDelayGetQuotation":
+          return (
+            isDoneStatus(getEffectiveStatusValue(row, "doerStatus", "dbDoerStatus")) ||
+            isDoneStatus(
+              getEffectiveStatusValue(
+                row,
+                "comparisonStatementStatus",
+                "dbComparisonStatementStatus",
+              ),
+            )
+          );
+        case "timeDelayTechApproval":
+          return isDoneStatus(
+            getEffectiveStatusValue(
+              row,
+              "technicalApprovalStatus",
+              "dbTechnicalApprovalStatus",
+            ),
+          );
+        case "timeDelayCommercialNegotiation":
+          if (stageId === "getApproval") {
+            return isDoneStatus(getEffectiveStatusValue(row, "getApproval", "dbGetApproval"));
+          }
+          return isDoneStatus(
+            getEffectiveStatusValue(
+              row,
+              "finalizeTermsStatus",
+              "dbFinalizeTermsStatus",
+            ),
+          );
+        case "timeDelayPoGeneration":
+          return isDoneStatus(
+            getEffectiveStatusValue(row, "poGenerationStatus", "dbPoGenerationStatus"),
+          );
+        case "timeDelayMaterialReceived":
+          return Boolean(
+            String(
+              row.actualMaterialReceived ||
+                row.storeReceivedDate ||
+                row.materialReceivedDate ||
+                "",
+            ).trim(),
+          );
+        case "timeDelayPCFollowUp1":
+          return isDoneStatus(row.statusPCFollowUp1);
+        case "timeDelayPCFollowUp2":
+          return isDoneStatus(row.statusPCFollowUp2);
+        case "timeDelayPCFollowUp3":
+          return isDoneStatus(row.statusPCFollowUp3);
+        case "timeDelayPaymentPWP":
+          return isDoneStatus(row.statusPaymentPWP);
+        case "timeDelayPaymentBBD":
+          return isDoneStatus(row.statusPaymentBBD);
+        case "timeDelayPaymentFAR":
+          return isDoneStatus(row.statusPaymentFAR);
+        case "timeDelayPaymentPAPW":
+          return isDoneStatus(row.statusPaymentPAPW);
+        default:
+          return false;
+      }
+    },
+    [getEffectiveStatusValue, isDoneStatus],
+  );
+
+  const shouldShowGetQuotationRow = useCallback(
+    (row) => {
+      const doerName = String(row?.doerName || "").trim();
+      if (!doerName) return false;
+      const comparisonDone = isDoneStatus(
+        getEffectiveStatusValue(
+          row,
+          "comparisonStatementStatus",
+          "dbComparisonStatementStatus",
+        ),
+      );
+      return !comparisonDone;
+    },
+    [getEffectiveStatusValue, isDoneStatus],
+  );
+
   const summaryReport = React.useMemo(() => {
     const rows = Array.isArray(tableData) ? tableData : [];
     return delayFields.map((f) => {
@@ -441,8 +540,9 @@ export default function PurchasePage() {
         .map((r) => ({
           uniqueId: r.uniqueId || "",
           days: parseDelayDays(r[f.key]),
+          isCompleted: isDelayStageCompleted(r, f.key),
         }))
-        .filter((x) => x.days > 0);
+        .filter((x) => x.days > 0 && !x.isCompleted);
 
       const count = items.length;
       const total = items.reduce((acc, x) => acc + x.days, 0);
@@ -461,7 +561,7 @@ export default function PurchasePage() {
         top,
       };
     });
-  }, [tableData, delayFields, parseDelayDays]);
+  }, [tableData, delayFields, parseDelayDays, isDelayStageCompleted]);
 
   const trackedDelayFields = React.useMemo(
     () => [
@@ -518,9 +618,10 @@ export default function PurchasePage() {
             section: String(row.section || "").trim() || "-",
             itemDescription: String(row.itemDescription || "").trim(),
             delayDays: parseDelayDays(row[stage.key]),
+            isCompleted: isDelayStageCompleted(row, stage.key, stage.id),
           };
         })
-        .filter((item) => item.delayDays > 0);
+        .filter((item) => item.delayDays > 0 && !item.isCompleted);
 
       const groupedByUniqueId = new Map();
       delayedRows.forEach((item) => {
@@ -582,7 +683,7 @@ export default function PurchasePage() {
         uniqueItems,
       };
     });
-  }, [tableData, trackedDelayFields, parseDelayDays]);
+  }, [tableData, trackedDelayFields, parseDelayDays, isDelayStageCompleted]);
 
   const pseStageDelaySummary = React.useMemo(() => {
     const summaryByPse = new Map();
@@ -640,16 +741,23 @@ export default function PurchasePage() {
   }, [trackedStageDelayReport, trackedDelayFields]);
 
   const finalTableData = React.useMemo(() => {
-    if (selectedOption !== "Comparison Statement") return renderedTableData;
     const arr = [...(renderedTableData || [])];
-    arr.sort((a, b) => {
-      const r1 = a?.comparisonStatementStatus === "Reopen" ? 1 : 0;
-      const r2 = b?.comparisonStatementStatus === "Reopen" ? 1 : 0;
-      if (r1 !== r2) return r2 - r1;
-      return 0;
-    });
+
+    if (selectedOption === "Get Quotation") {
+      return arr.filter((row) => shouldShowGetQuotationRow(row));
+    }
+
+    if (selectedOption === "Comparison Statement") {
+      arr.sort((a, b) => {
+        const r1 = a?.comparisonStatementStatus === "Reopen" ? 1 : 0;
+        const r2 = b?.comparisonStatementStatus === "Reopen" ? 1 : 0;
+        if (r1 !== r2) return r2 - r1;
+        return 0;
+      });
+    }
+
     return arr;
-  }, [renderedTableData, selectedOption]);
+  }, [renderedTableData, selectedOption, shouldShowGetQuotationRow]);
 
   useEffect(() => {
     if (!canAdminBulkDeletePmsRows || selectedOption !== "PMS Master Sheet") {
@@ -4534,10 +4642,7 @@ export default function PurchasePage() {
                               </>
                             )}
                             {selectedOption === "Get Quotation" &&
-                              row.doerName !== "" &&
-                              ((row.dbDoerStatus ?? "") !== "Done" ||
-                                (row.dbComparisonStatementStatus ?? "") !==
-                                  "Done") && (
+                              shouldShowGetQuotationRow(row) && (
                                 <>
                                   {/* Planned Date (read-only) */}
                                   <td className="px-4 py-2 border-b bg-gray-100 cursor-not-allowed">
