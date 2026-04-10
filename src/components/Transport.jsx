@@ -339,12 +339,12 @@ export default function Transport() {
                 </div>
               </div>
 
-              <div className="w-full overflow-x-auto">
+              <div className="w-full overflow-x-auto overflow-y-auto max-h-[70vh]">
                 <table className="min-w-max border text-xs">
-              <thead className="bg-gray-200">
+              <thead className="bg-gray-200 sticky top-0 z-20">
                 <tr>
                   {columns.map((col) => (
-                    <th key={col.key} className="px-4 py-3 border-b">
+                    <th key={col.key} className="px-4 py-3 border-b bg-gray-200">
                       {col.label}
                     </th>
                   ))}

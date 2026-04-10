@@ -104,7 +104,7 @@ const getNavLinksByRole = (role, username) => {
         { name: "PC Follow Up", icon: <FaPhoneAlt /> },
         { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
         { name: "Transport", icon: <FaShip /> },
-
+        { name: "Summary Report", icon: <FaClipboardList /> },
       ],
     };
   } 
@@ -147,7 +147,16 @@ const getNavLinksByRole = (role, username) => {
         { name: "Summary Report", icon: <FaClipboardList /> },
       ],
     };
-  } else if (role === "ADMIN" && normalizedUsername === "Sumona") {
+  } 
+  
+  else if (role === "ADMIN" && normalizedUsername === "Anindita Chakraborty SMR") {
+    menu = {
+      "Executive FMS Section": [
+        { name: "Summary Report", icon: <FaClipboardList /> },
+        { name: "Transport", icon: <FaShip /> },
+      ],
+    };
+  }else if (role === "ADMIN" && normalizedUsername === "Sumona") {
     menu = {
       "Executive FMS Section": [
         { name: "Summary Report", icon: <FaClipboardList /> },

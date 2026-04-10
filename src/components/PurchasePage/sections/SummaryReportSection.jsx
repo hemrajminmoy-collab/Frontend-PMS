@@ -30,6 +30,11 @@ export default function SummaryReportSection({
   const isAdmin = String(role || "")
     .trim()
     .toUpperCase() === "ADMIN";
+  const normalizedUsername = String(username || "").trim().toLowerCase();
+  const isAninditaSummaryActionUser =
+    normalizedUsername === "anindita chakraborty" ||
+    normalizedUsername === "anindita chakraborty smr";
+  const canManageSummaryFollowup = isAdmin || isAninditaSummaryActionUser;
   const [selectedPse, setSelectedPse] = React.useState("ALL");
 
   const [followupRows, setFollowupRows] = React.useState([]);
@@ -235,8 +240,10 @@ export default function SummaryReportSection({
   }, [pendingPseStageDelaySummary, selectedPse]);
 
   const openFollowupModal = (stage, item) => {
-    if (!isAdmin) {
-      setFollowupError("Only ADMIN can fill/update followup from Summary Report.");
+    if (!canManageSummaryFollowup) {
+      setFollowupError(
+        "Only ADMIN or Anindita Chakraborty can fill/update followup from Summary Report.",
+      );
       return;
     }
 
@@ -263,8 +270,8 @@ export default function SummaryReportSection({
     setModalError("");
     setModalSuccess("");
 
-    if (!isAdmin) {
-      setModalError("Only ADMIN can save followup.");
+    if (!canManageSummaryFollowup) {
+      setModalError("Only ADMIN or Anindita Chakraborty can save followup.");
       return;
     }
 
@@ -340,7 +347,7 @@ export default function SummaryReportSection({
   };
 
   const handleAdminApproveCompleted = async (stage, item, followup) => {
-    if (!isAdmin) return false;
+    if (!canManageSummaryFollowup) return false;
 
     const key = makeFollowupKey(item.uniqueId, stage.id, item.pse);
     const approvedDate = String(followup?.estimatedCompletionDate || "").trim() || getTodayDateInputValue();
@@ -376,7 +383,7 @@ export default function SummaryReportSection({
   };
 
   const openApproveConfirmModal = (stage, item, followup) => {
-    if (!isAdmin) return;
+    if (!canManageSummaryFollowup) return;
 
     const approvedDate = String(followup?.estimatedCompletionDate || "").trim() || getTodayDateInputValue();
     setApproveConfirmData({
@@ -445,9 +452,9 @@ export default function SummaryReportSection({
           Delay Tracker (Custom Workflow Sections)
         </div>
         <div className="mb-4 text-xs text-gray-600">
-          {isAdmin
+          {canManageSummaryFollowup
             ? "Fill-up action is available here. Saved estimated dates will appear in Delay Followup."
-            : "View-only mode. Only ADMIN can fill/update followup here."}
+            : "View-only mode. Only ADMIN or Anindita Chakraborty can fill/update followup here."}
         </div>
         {followupError && (
           <div className="mb-4 text-xs text-red-600">{followupError}</div>
@@ -582,7 +589,7 @@ export default function SummaryReportSection({
                             )}
                           </td>
                           <td className="px-3 py-2 border-b text-center">
-                            {isAdmin ? (
+                            {canManageSummaryFollowup ? (
                               <div className="flex items-center justify-center gap-2">
                                 <button
                                   type="button"
@@ -614,7 +621,7 @@ export default function SummaryReportSection({
                                 </button>
                               </div>
                             ) : (
-                              <span className="text-gray-500">Admin only</span>
+                              <span className="text-gray-500">Authorized only</span>
                             )}
                           </td>
                         </tr>
@@ -687,7 +694,7 @@ export default function SummaryReportSection({
         </div>
       )}
 
-      {modalOpen && isAdmin && (
+      {modalOpen && canManageSummaryFollowup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl border">
             <div className="px-5 py-4 border-b flex items-center justify-between">
@@ -751,7 +758,7 @@ export default function SummaryReportSection({
                     <input
                       type="checkbox"
                       checked={modalForm.isCompleted}
-                      disabled={!isAdmin}
+                      disabled={!canManageSummaryFollowup}
                       onChange={(e) =>
                         setModalForm((prev) => ({
                           ...prev,
@@ -759,7 +766,7 @@ export default function SummaryReportSection({
                         }))
                       }
                     />
-                    Mark as Completed {isAdmin ? "" : "(Admin only)"}
+                    Mark as Completed {canManageSummaryFollowup ? "" : "(Authorized only)"}
                   </label>
                 </div>
                 <div className="md:col-span-2">
@@ -807,7 +814,7 @@ export default function SummaryReportSection({
         </div>
       )}
 
-      {approveConfirmModalOpen && isAdmin && (
+      {approveConfirmModalOpen && canManageSummaryFollowup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl border">
             <div className="px-5 py-4 border-b flex items-center justify-between">
