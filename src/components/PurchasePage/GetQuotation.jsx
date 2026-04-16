@@ -341,6 +341,14 @@ export default function PurchasePage() {
   const [selectedSubmittedByNames, setSelectedSubmittedByNames] = useState([]);
   const [submittedByOptions, setSubmittedByOptions] = useState([]);
   const [masterUniqueIdFilter, setMasterUniqueIdFilter] = useState("");
+  const sectionOptions = React.useMemo(() => {
+    const uniqueSections = new Set();
+    (tableData || []).forEach((row) => {
+      const section = String(row.section || "").trim();
+      if (section) uniqueSections.add(section);
+    });
+    return Array.from(uniqueSections).sort();
+  }, [tableData]);
   const [storeInFilter, setStoreInFilter] = useState("");
   const [storeItemDescriptionFilter, setStoreItemDescriptionFilter] =
     useState("");
@@ -2405,6 +2413,7 @@ export default function PurchasePage() {
               vendorNameFilter={vendorNameFilter}
               setVendorNameFilter={setVendorNameFilter}
               vendorOptions={vendorNames}
+              sectionOptions={sectionOptions}
               date={date}
               setDate={setDate}
               startDate={startDate}
