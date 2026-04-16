@@ -15,6 +15,9 @@ export default function PurchaseFilterBar({
   setSelectedSite,
   selectedName,
   setSelectedName,
+  selectedSection,
+  setSelectedSection,
+  sectionOptions,
   masterUniqueIdFilter,
   setMasterUniqueIdFilter,
   selectedSubmittedByNames,
@@ -28,6 +31,7 @@ export default function PurchaseFilterBar({
   setPoNumberFilter,
   vendorNameFilter,
   setVendorNameFilter,
+  vendorOptions,
   date,
   setDate,
   startDate,
@@ -133,6 +137,7 @@ export default function PurchaseFilterBar({
         >
           <option value="">Select</option>
           <option value="Site">Site</option>
+          <option value="Section">Section</option>
           <option value="Date">Date</option>
           <option value="DateRange">Date Range</option>
           <option value="Name">Name</option>
@@ -165,6 +170,21 @@ export default function PurchaseFilterBar({
             <option value="HRM">HRM</option>
             <option value="SUNAGROW">SUNAGROW</option>
             <option value="RICE FIELD">RICE FIELD</option>
+          </select>
+        )}
+
+        {findBy === "Section" && (
+          <select
+            className="border p-1 rounded-lg text-xs min-w-[180px]"
+            value={selectedSection}
+            onChange={(e) => setSelectedSection(e.target.value)}
+          >
+            <option value="">Select Section</option>
+            {(Array.isArray(sectionOptions) ? sectionOptions : []).map((section) => (
+              <option key={section} value={section}>
+                {section}
+              </option>
+            ))}
           </select>
         )}
 
@@ -221,13 +241,20 @@ export default function PurchaseFilterBar({
         )}
 
         {findBy === "VendorName" && (
-          <input
-            type="text"
-            className="border p-1 rounded-lg text-xs min-w-[200px]"
-            value={vendorNameFilter}
-            onChange={(e) => setVendorNameFilter(e.target.value)}
-            placeholder="Enter Vendor Name"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              list="vendorNameOptions"
+              className="border p-1 rounded-lg text-xs min-w-[220px]"
+              value={vendorNameFilter}
+              onChange={(e) => setVendorNameFilter(e.target.value)}
+              placeholder="Search or select vendor"
+            />
+            <datalist id="vendorNameOptions">
+              {(Array.isArray(vendorOptions) ? vendorOptions : []).map((vendorName) => (
+                <option key={vendorName} value={vendorName} />
+              ))}
+            </datalist>
+          </div>
         )}
 
         {selectedOption === "PMS Master Sheet" && findBy === "UniqueId" && (

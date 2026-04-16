@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-// import  {motion }  from "framer-motion";
 import { motion as Motion } from "framer-motion";
 
 import {
@@ -24,6 +23,7 @@ import axios from "axios";
 import PurchaseTopNav from "./PurchaseTopNav";
 import PurchaseSidebar from "./PurchaseSidebar";
 import PurchaseFilterBar from "./PurchaseFilterBar";
+import { vendorNames } from "../../data/vendorNames";
 import SummaryReportSection from "./sections/SummaryReportSection";
 import StoreManualCloseSection from "./sections/StoreManualCloseSection";
 import StoreBulkInvoiceSection from "./sections/StoreBulkInvoiceSection";
@@ -49,10 +49,8 @@ import {
 const getNavLinksByRole = (role, username) => {
   const normalizedUsername = String(username || "").trim();
   const normalizedLowerUsername = normalizedUsername.toLowerCase();
-  const normalizedRole = String(role || "")
-    .trim()
-    .toUpperCase();
-  const isDebasishPoUploadOnlyUsername =
+  const normalizedRole = String(role || "").trim().toUpperCase();
+  const isDebasishPoUploadOnlyUsername = 
     normalizedLowerUsername === "debasish samanta po" ||
     normalizedLowerUsername === "debasis samanta po";
   const isLogViewerUser =
@@ -104,7 +102,7 @@ const getNavLinksByRole = (role, username) => {
         { name: "PC Follow Up", icon: <FaPhoneAlt /> },
         { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
         { name: "Transport", icon: <FaShip /> },
-        { name: "Summary Report", icon: <FaClipboardList /> },
+
       ],
     };
   } 
@@ -148,15 +146,7 @@ const getNavLinksByRole = (role, username) => {
       ],
     };
   } 
-  
-  else if (role === "ADMIN" && normalizedUsername === "Anindita Chakraborty SMR") {
-    menu = {
-      "Executive FMS Section": [
-        { name: "Summary Report", icon: <FaClipboardList /> },
-        { name: "Transport", icon: <FaShip /> },
-      ],
-    };
-  }else if (role === "ADMIN" && normalizedUsername === "Sumona") {
+  else if (role === "ADMIN" && normalizedUsername === "Sumona") {
     menu = {
       "Executive FMS Section": [
         { name: "Summary Report", icon: <FaClipboardList /> },
@@ -2414,6 +2404,7 @@ export default function PurchasePage() {
               setPoNumberFilter={setPoNumberFilter}
               vendorNameFilter={vendorNameFilter}
               setVendorNameFilter={setVendorNameFilter}
+              vendorOptions={vendorNames}
               date={date}
               setDate={setDate}
               startDate={startDate}
@@ -2518,6 +2509,7 @@ export default function PurchasePage() {
                     setPoBulkSuccess={setPoBulkSuccess}
                     poBulkError={poBulkError}
                     poBulkSuccess={poBulkSuccess}
+                    vendorOptions={vendorNames}
                   />
                 )}
 
@@ -2544,6 +2536,7 @@ export default function PurchasePage() {
                     lpSelectedRowIds={lpSelectedRowIds}
                     lpBulkError={lpBulkError}
                     lpBulkSuccess={lpBulkSuccess}
+                    vendorOptions={vendorNames}
                   />
                 )}
 

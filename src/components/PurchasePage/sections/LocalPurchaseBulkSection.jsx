@@ -21,6 +21,7 @@ export default function LocalPurchaseBulkSection({
   lpSelectedRowIds,
   lpBulkError,
   lpBulkSuccess,
+  vendorOptions = [],
 }) {
   return (
     <div className="bg-white p-4 rounded-xl shadow-md mb-4 border">
@@ -68,12 +69,17 @@ export default function LocalPurchaseBulkSection({
         <div className="flex flex-col">
           <label className="text-xs text-gray-600 mb-1">Vendor Name</label>
           <input
-            type="text"
+            list="lpVendorNameOptions"
             className="border p-2 rounded text-xs"
             value={lpBulkVendorName}
             onChange={(e) => setLpBulkVendorName(e.target.value)}
-            placeholder="Vendor"
+            placeholder="Search or select vendor"
           />
+          <datalist id="lpVendorNameOptions">
+            {(Array.isArray(vendorOptions) ? vendorOptions : []).map((vendorName) => (
+              <option key={vendorName} value={vendorName} />
+            ))}
+          </datalist>
         </div>
 
         <div className="flex flex-col">
