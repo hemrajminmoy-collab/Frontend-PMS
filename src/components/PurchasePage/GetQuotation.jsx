@@ -23,7 +23,6 @@ import axios from "axios";
 import PurchaseTopNav from "./PurchaseTopNav";
 import PurchaseSidebar from "./PurchaseSidebar";
 import PurchaseFilterBar from "./PurchaseFilterBar";
-import { vendorNames } from "../../data/vendorNames";
 import SummaryReportSection from "./sections/SummaryReportSection";
 import StoreManualCloseSection from "./sections/StoreManualCloseSection";
 import StoreBulkInvoiceSection from "./sections/StoreBulkInvoiceSection";
@@ -42,6 +41,7 @@ import {
   manualCloseStoreUniqueId,
   uploadComparisonPDF,
   getComparisonPdfByRowId,
+  getVendorMasterList,
   //uploadGetQuotationPDF
 } from "../../api/IndentForm.api";
 
@@ -326,8 +326,64 @@ export default function PurchasePage() {
     };
   }, []);
 
+  const [vendorNameFilter, setVendorNameFilter] = useState("");
+  const [poBulkVendorName, setPoBulkVendorName] = useState("");
+  const [lpBulkVendorName, setLpBulkVendorName] = useState("");
+  const [vendorOptions, setVendorOptions] = useState([]);
+  const [poVendorSearchLoading, setPoVendorSearchLoading] = useState(false);
+
+  const handleSearchPoVendors = useCallback(async (query) => {
+    const q = String(query || "").trim();
+    if (q.length < 2) {
+      setVendorOptions([]);
+      return;
+    }
+
+    setPoVendorSearchLoading(true);
+    try {
+      const response = await getVendorMasterList(q);
+      const payload = response?.data?.success !== undefined ? response.data : response;
+      const data = Array.isArray(payload?.data) ? payload.data : [];
+      const uniqueVendorMap = new Map();
+      data.forEach((vendor) => {
+        const name = String(vendor?.name || "").trim();
+        if (!name) return;
+        const key = name.toLowerCase();
+        if (!uniqueVendorMap.has(key)) uniqueVendorMap.set(key, name);
+      });
+      const uniqueNames = Array.from(uniqueVendorMap.values()).sort((a, b) =>
+        a.localeCompare(b),
+      );
+      setVendorOptions(uniqueNames);
+    } catch (error) {
+      console.error("Vendor master search failed:", error);
+      setVendorOptions([]);
+    } finally {
+      setPoVendorSearchLoading(false);
+    }
+  }, [setVendorOptions, setPoVendorSearchLoading]);
+
+  useEffect(() => {
+    if (vendorSearchTimerRef.current) {
+      clearTimeout(vendorSearchTimerRef.current);
+    }
+
+    const queryTerm = String(
+      lpBulkVendorName || vendorNameFilter || "",
+    ).trim();
+
+    vendorSearchTimerRef.current = setTimeout(() => {
+      handleSearchPoVendors(queryTerm);
+    }, 250);
+
+    return () => {
+      if (vendorSearchTimerRef.current) {
+        clearTimeout(vendorSearchTimerRef.current);
+      }
+    };
+  }, [lpBulkVendorName, vendorNameFilter]);
+
   // ---------------------- Store Manual Close (Unique ID) ----------------------
-  const [manualCloseUniqueId, setManualCloseUniqueId] = useState("");
   const [manualCloseRecord, setManualCloseRecord] = useState(null);
   const [manualCloseReason, setManualCloseReason] = useState("");
   const [manualCloseError, setManualCloseError] = useState("");
@@ -353,7 +409,6 @@ export default function PurchasePage() {
   const [storeItemDescriptionFilter, setStoreItemDescriptionFilter] =
     useState("");
   const [poNumberFilter, setPoNumberFilter] = useState("");
-  const [vendorNameFilter, setVendorNameFilter] = useState("");
   const [date, setDate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -824,6 +879,7 @@ export default function PurchasePage() {
 
   const [uploadingInvoiceRowId, setUploadingInvoiceRowId] = useState(null);
   const [uploadingPoRowId, setUploadingPoRowId] = useState(null);
+  const vendorSearchTimerRef = useRef(null);
 
   // ------------------ Store: same invoice for multiple items ------------------
   const [storeSelectedRowIds, setStoreSelectedRowIds] = useState([]);
@@ -840,7 +896,6 @@ export default function PurchasePage() {
   const [poSelectedRowIds, setPoSelectedRowIds] = useState([]);
   const [poBulkPoNumber, setPoBulkPoNumber] = useState("");
   const [poBulkPoDate, setPoBulkPoDate] = useState("");
-  const [poBulkVendorName, setPoBulkVendorName] = useState("");
   const [poBulkLeadDays, setPoBulkLeadDays] = useState("");
   const [poBulkPaymentCondition, setPoBulkPaymentCondition] = useState("");
   const [poBulkPapwDays, setPoBulkPapwDays] = useState("");
@@ -892,11 +947,58 @@ export default function PurchasePage() {
   const [lpBulkInvoiceNumber, setLpBulkInvoiceNumber] = useState("");
   const [lpBulkModeOfTransport, setLpBulkModeOfTransport] = useState("");
   const [lpBulkTransporterName, setLpBulkTransporterName] = useState("");
-  const [lpBulkVendorName, setLpBulkVendorName] = useState("");
   const [lpBulkRemarks, setLpBulkRemarks] = useState("");
   const [lpBulkUploading, setLpBulkUploading] = useState(false);
   const [lpBulkError, setLpBulkError] = useState("");
   const [lpBulkSuccess, setLpBulkSuccess] = useState("");
+
+  useEffect(() => {
+    const loadVendorMaster = async (query) => {
+      if (!query || String(query).trim().length < 2) {
+        setVendorOptions([]);
+        return;
+      }
+
+      try {
+        const response = await getVendorMasterList(String(query).trim());
+        const payload = response?.data?.success !== undefined ? response.data : response;
+        const data = Array.isArray(payload?.data) ? payload.data : [];
+        const uniqueVendorMap = new Map();
+        data.forEach((vendor) => {
+          const name = String(vendor?.name || "").trim();
+          if (!name) return;
+          const key = name.toLowerCase();
+          if (!uniqueVendorMap.has(key)) uniqueVendorMap.set(key, name);
+        });
+        const uniqueNames = Array.from(uniqueVendorMap.values()).sort((a, b) =>
+          a.localeCompare(b),
+        );
+        setVendorOptions(uniqueNames);
+      } catch (error) {
+        console.error("Failed to load vendor master list:", error);
+        setVendorOptions([]);
+      }
+    };
+
+    if (vendorSearchTimerRef.current) {
+      clearTimeout(vendorSearchTimerRef.current);
+    }
+
+    const queryTerm = String(
+      poBulkVendorName || lpBulkVendorName || vendorNameFilter || "",
+    ).trim();
+    
+
+    vendorSearchTimerRef.current = setTimeout(() => {
+      loadVendorMaster(queryTerm);
+    }, 250);
+
+    return () => {
+      if (vendorSearchTimerRef.current) {
+        clearTimeout(vendorSearchTimerRef.current);
+      }
+    };
+  }, [poBulkVendorName, lpBulkVendorName, vendorNameFilter]);
 
   const isLpRowSelected = (rowId) => lpSelectedRowIds.includes(rowId);
 
@@ -1077,7 +1179,7 @@ export default function PurchasePage() {
         const detailsPayload = {
           poNumber: poBulkPoNumber,
           poDate: poBulkPoDate,
-          vendorName: poBulkVendorName,
+          vendorName: String(poBulkVendorName || "").trim(),
           leadDays: parseOptionalNumber(poBulkLeadDays),
           amount: parseOptionalNumber(poBulkAmount),
           paymentCondition: poBulkPaymentCondition,
@@ -1102,7 +1204,7 @@ export default function PurchasePage() {
         const rowPatch = {
           poNumber: poBulkPoNumber,
           poDate: poBulkPoDate,
-          vendorName: poBulkVendorName,
+          vendorName: String(poBulkVendorName || "").trim(),
           leadDays: parseOptionalNumber(poBulkLeadDays),
           amount: parseOptionalNumber(poBulkAmount),
           paymentCondition: poBulkPaymentCondition,
@@ -2412,7 +2514,7 @@ export default function PurchasePage() {
               setPoNumberFilter={setPoNumberFilter}
               vendorNameFilter={vendorNameFilter}
               setVendorNameFilter={setVendorNameFilter}
-              vendorOptions={vendorNames}
+              vendorOptions={vendorOptions}
               sectionOptions={sectionOptions}
               date={date}
               setDate={setDate}
@@ -2518,7 +2620,6 @@ export default function PurchasePage() {
                     setPoBulkSuccess={setPoBulkSuccess}
                     poBulkError={poBulkError}
                     poBulkSuccess={poBulkSuccess}
-                    vendorOptions={vendorNames}
                   />
                 )}
 
@@ -2545,7 +2646,7 @@ export default function PurchasePage() {
                     lpSelectedRowIds={lpSelectedRowIds}
                     lpBulkError={lpBulkError}
                     lpBulkSuccess={lpBulkSuccess}
-                    vendorOptions={vendorNames}
+                    vendorOptions={vendorOptions}
                   />
                 )}
 

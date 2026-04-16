@@ -250,8 +250,8 @@ export default function PurchaseFilterBar({
               placeholder="Search or select vendor"
             />
             <datalist id="vendorNameOptions">
-              {(Array.isArray(vendorOptions) ? vendorOptions : []).map((vendorName) => (
-                <option key={vendorName} value={vendorName} />
+              {(Array.isArray(vendorOptions) ? vendorOptions : []).map((vendorName, idx) => (
+                <option key={`${vendorName}-${idx}`} value={vendorName} />
               ))}
             </datalist>
           </div>

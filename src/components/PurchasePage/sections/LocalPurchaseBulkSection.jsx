@@ -76,8 +76,8 @@ export default function LocalPurchaseBulkSection({
             placeholder="Search or select vendor"
           />
           <datalist id="lpVendorNameOptions">
-            {(Array.isArray(vendorOptions) ? vendorOptions : []).map((vendorName) => (
-              <option key={vendorName} value={vendorName} />
+            {(Array.isArray(vendorOptions) ? vendorOptions : []).map((vendorName, idx) => (
+              <option key={`${vendorName}-${idx}`} value={vendorName} />
             ))}
           </datalist>
         </div>

@@ -186,8 +186,9 @@ export async function getAllLocalPurchaseForms({ role, username } = {}) {
   return await apiRequest("/localpurchase/all", "POST", { role, username });
 }
 
-export async function getVendorMasterList() {
-  return await apiRequest("/vendor-master", "GET");
+export async function getVendorMasterList(query = "") {
+  const endpoint = query ? `/vendor-master?query=${encodeURIComponent(query)}` : "/vendor-master";
+  return await apiRequest(endpoint, "GET");
 }
 
 export async function getDelayFollowups({ role, username } = {}) {

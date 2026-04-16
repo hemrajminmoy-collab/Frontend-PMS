@@ -25,7 +25,6 @@ export default function PoBulkSection({
   setPoBulkSuccess,
   poBulkError,
   poBulkSuccess,
-  vendorOptions = [],
 }) {
   return (
     <div className="mb-4 border rounded-xl p-4 bg-white shadow-sm">
@@ -59,17 +58,11 @@ export default function PoBulkSection({
           <div className="flex flex-col">
             <label className="text-xs text-gray-600">Vendor Name</label>
             <input
-              list="poVendorNameOptions"
               className="border p-2 rounded text-xs"
               value={poBulkVendorName}
               onChange={(e) => setPoBulkVendorName(e.target.value)}
-              placeholder="Search or select vendor"
+              placeholder="Enter vendor name"
             />
-            <datalist id="poVendorNameOptions">
-              {(Array.isArray(vendorOptions) ? vendorOptions : []).map((vendorName) => (
-                <option key={vendorName} value={vendorName} />
-              ))}
-            </datalist>
           </div>
 
           <div className="flex flex-col">
