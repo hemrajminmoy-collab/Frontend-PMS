@@ -242,6 +242,7 @@ export default function PurchasePage() {
     if (role === "Store") return "Store";
     return "";
   };
+const [selectedSection, setSelectedSection] = useState("");
 
   const [selectedOption, setSelectedOption] = useState(getDefaultOption(role));
   const [tableData, setTableData] = useState([]);
@@ -398,13 +399,14 @@ export default function PurchasePage() {
   const [submittedByOptions, setSubmittedByOptions] = useState([]);
   const [masterUniqueIdFilter, setMasterUniqueIdFilter] = useState("");
   const sectionOptions = React.useMemo(() => {
-    const uniqueSections = new Set();
-    (tableData || []).forEach((row) => {
-      const section = String(row.section || "").trim();
-      if (section) uniqueSections.add(section);
-    });
-    return Array.from(uniqueSections).sort();
-  }, [tableData]);
+  const uniqueSections = new Set();
+  (tableData || []).forEach((row) => {
+    const section = String(row.section || "").trim();
+    if (section) uniqueSections.add(section);
+  });
+  const sorted = Array.from(uniqueSections).sort();
+  return ["(No Section)", ...sorted];  // Add special option
+}, [tableData]);
   const [storeInFilter, setStoreInFilter] = useState("");
   const [storeItemDescriptionFilter, setStoreItemDescriptionFilter] =
     useState("");
@@ -1543,6 +1545,16 @@ export default function PurchasePage() {
         rows = rows.filter((item) => (item.doerName || "") === selectedName);
       }
 
+// -------- FILTER BY SECTION --------
+if (findBy === "Section" && selectedSection) {
+  if (selectedSection === "(No Section)") {
+    // Show rows where section is empty, null, undefined, or whitespace
+    rows = rows.filter((item) => !item.section || String(item.section).trim() === "");
+  } else {
+    rows = rows.filter((item) => item.section === selectedSection);
+  }
+}
+
       // -------- FILTER BY PO NUMBER --------
       if (findBy === "PoNumber") {
         const q = String(poNumberFilter || "").trim().toLowerCase();
@@ -1652,6 +1664,7 @@ export default function PurchasePage() {
     storeItemDescriptionFilter,
     date,
     startDate,
+    selectedSection, 
     endDate,
     API_BASE_URL,
   ]);
@@ -1672,6 +1685,7 @@ export default function PurchasePage() {
     setDate("");
     setStartDate("");
     setEndDate("");
+    setSelectedSection("");
   };
 
   // Map filteredData into tableData and snapshot DB fields
@@ -2522,6 +2536,9 @@ export default function PurchasePage() {
               setStartDate={setStartDate}
               endDate={endDate}
               setEndDate={setEndDate}
+              selectedSection={selectedSection}
+              setSelectedSection={setSelectedSection}
+                
             />
           )}
 
@@ -2530,6 +2547,7 @@ export default function PurchasePage() {
               Purchase
             </h1>
           </div>
+          
 
           {selectedOption === "Summary Report" && (
             <SummaryReportSection
