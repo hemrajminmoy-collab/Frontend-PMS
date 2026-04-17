@@ -151,6 +151,7 @@ const getNavLinksByRole = (role, username) => {
       "Executive FMS Section": [
         { name: "Summary Report", icon: <FaClipboardList /> },
         { name: "Transport", icon: <FaShip /> },
+        { name: "PC Follow Up", icon: <FaPhoneAlt /> },
       ],
     };
   }
