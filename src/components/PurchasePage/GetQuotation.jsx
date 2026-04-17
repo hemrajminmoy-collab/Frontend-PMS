@@ -386,6 +386,7 @@ const [selectedSection, setSelectedSection] = useState("");
   }, [lpBulkVendorName, vendorNameFilter]);
 
   // ---------------------- Store Manual Close (Unique ID) ----------------------
+  const [manualCloseUniqueId, setManualCloseUniqueId] = useState("");
   const [manualCloseRecord, setManualCloseRecord] = useState(null);
   const [manualCloseReason, setManualCloseReason] = useState("");
   const [manualCloseError, setManualCloseError] = useState("");
