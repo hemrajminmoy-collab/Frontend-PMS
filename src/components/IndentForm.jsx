@@ -192,31 +192,41 @@ export default function IndentCreationForm() {
       for (let i = 0; i < bulkData.length; i++) {
         const row = bulkData[i];
         const totalQty = Number(row["Total Quantity"]);
-        if (isNaN(totalQty))
-          return alert(`Invalid Total Quantity at row ${i + 2}`);
+        if (isNaN(totalQty)) {
+          throw new Error(`Invalid Total Quantity at Excel row ${i + 2}`);
+        }
 
         const idRes = await getLatestUniqueId();
         const uniqueId = idRes.success ? idRes.uniqueId.toString() : "";
 
-        const response = await createIndentForm({
-          uniqueId,
-          site: row["Site"] || "",
-          section: row["Section"] || "",
-          applicationArea: row["Application Area"] || "",
-          oldMaterialStatus: row["Old Material Status"] || "",
-          orderApprovedBy: row["Order Approved By"] || "",
-          indentNumber: row["Indent Number"] || "",
-          itemNumber: row["Item Number"] || "",
-          uom: row["UOM"] || "",
-          itemDescription: row["Item Description"] || "",
-          totalQuantity: totalQty,
-          submittedBy: row.submittedBy || "User",
-        });
+        try {
+          const response = await createIndentForm({
+            uniqueId,
+            site: row["Site"] || "",
+            section: row["Section"] || "",
+            applicationArea: row["Application Area"] || "",
+            oldMaterialStatus: row["Old Material Status"] || "",
+            orderApprovedBy: row["Order Approved By"] || "",
+            indentNumber: row["Indent Number"] || "",
+            itemNumber: row["Item Number"] || "",
+            uom: row["UOM"] || "",
+            itemDescription: row["Item Description"] || "",
+            totalQuantity: totalQty,
+            submittedBy: row.submittedBy || "User",
+          });
 
-        if (response?.skipped) {
-          skippedCount += 1;
-        } else {
-          insertedCount += 1;
+          if (response?.skipped) {
+            skippedCount += 1;
+          } else {
+            insertedCount += 1;
+          }
+        } catch (error) {
+          const backendMessage =
+            error?.response?.data?.message ||
+            error?.response?.data?.error ||
+            error?.message ||
+            "Unknown error";
+          throw new Error(`Bulk upload failed at Excel row ${i + 2}: ${backendMessage}`);
         }
       }
 
@@ -227,7 +237,7 @@ export default function IndentCreationForm() {
       setShowBulkUpload(false);
     } catch (error) {
       console.error(error);
-      alert("Failed to save bulk data.");
+      alert(error?.message || "Failed to save bulk data.");
     } finally {
       setIsBulkSaving(false);
     }
