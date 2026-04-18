@@ -212,6 +212,8 @@ const getNavLinksByRole = (role, username) => {
   return menu;
 };
 
+const PAGE_SIZE = 20;
+
 export default function PurchasePage() {
   const navigate = useNavigate();
   const role = localStorage.getItem("role") || "";
@@ -248,6 +250,11 @@ const [selectedSection, setSelectedSection] = useState("");
   const [selectedOption, setSelectedOption] = useState(getDefaultOption(role));
   const [tableData, setTableData] = useState([]);
   const [filteredData, setFilteredData] = useState([]); // used for Find By filters + Store Manual Closed
+  const [hasMoreRows, setHasMoreRows] = useState(false);
+  const [loadingInitialRows, setLoadingInitialRows] = useState(false);
+  const [loadingMoreRows, setLoadingMoreRows] = useState(false);
+  const [loadedRowsCount, setLoadedRowsCount] = useState(0);
+  const [totalRowsCount, setTotalRowsCount] = useState(0);
   const [changedRows, setChangedRows] = useState({});
   const latestDataRef = useRef([]); // <- always keep freshest data here
   const inputAuditTimersRef = useRef(new Map());
@@ -257,6 +264,7 @@ const [selectedSection, setSelectedSection] = useState("");
   const [pdfPreview, setPdfPreview] = useState({});
   const [pcFollowUp, setPcFollowUp] = useState("PC1"); // "", "PC1", "PC2", "PC3"
   const [paymentFollowUp, setPaymentFollowUp] = useState("PWP");
+  // const [showOnlyReceivedByBoth, setshowOnlyReceivedByBoth] = useState(false);
 
   // ------------------ Date formatting helpers ------------------
   //   DB may store dates as ISO strings (YYYY-MM-DD) or full ISO timestamps.
@@ -327,6 +335,7 @@ const [selectedSection, setSelectedSection] = useState("");
       inputAuditTimersRef.current.clear();
     };
   }, []);
+  
 
   const [vendorNameFilter, setVendorNameFilter] = useState("");
   const [poBulkVendorName, setPoBulkVendorName] = useState("");
@@ -394,6 +403,8 @@ const [selectedSection, setSelectedSection] = useState("");
   const [showExcessBox, setShowExcessBox] = useState(false);
   const [manualCloseLoading, setManualCloseLoading] = useState(false);
 
+const [showOnlyReceivedByBoth, setShowOnlyReceivedByBoth] = useState(false);
+const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
   const [findBy, setFindBy] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
   const [selectedName, setSelectedName] = useState("");
@@ -814,6 +825,7 @@ const [selectedSection, setSelectedSection] = useState("");
     if (selectedOption === "Get Quotation") {
       return arr.filter((row) => shouldShowGetQuotationRow(row));
     }
+    
 
     if (selectedOption === "Comparison Statement") {
       arr.sort((a, b) => {
@@ -826,6 +838,52 @@ const [selectedSection, setSelectedSection] = useState("");
 
     return arr;
   }, [renderedTableData, selectedOption, shouldShowGetQuotationRow]);
+  // Filter for PMS Master Sheet - Show only items received by both Store and PSE
+
+  // Add this after your finalTableData useMemo
+const pmsFilteredData = React.useMemo(() => {
+  if (selectedOption !== "PMS Master Sheet") {
+    return finalTableData;
+  }
+  
+  if (!showOnlyReceivedByBoth && !showOnlyNotReceived) {
+    return finalTableData; // Show all
+  }
+  
+  return (finalTableData || []).filter((row) => {
+    const hasStoreReceived = row.storeReceivedDate && String(row.storeReceivedDate).trim() !== "";
+    const hasPseReceived = row.materialReceivedDate && String(row.materialReceivedDate).trim() !== "";
+    const storeStatusReceived = row.storeStatus === "Received";
+    
+    const isBothReceived = hasStoreReceived && hasPseReceived && storeStatusReceived;
+    
+    if (showOnlyReceivedByBoth) {
+      return isBothReceived;
+    }
+    
+    if (showOnlyNotReceived) {
+      return !isBothReceived; // Not both received (missing one or both)
+    }
+    
+    return true;
+  });
+}, [showOnlyReceivedByBoth, showOnlyNotReceived, finalTableData, selectedOption]);
+
+const pmsBothReceivedFilteredData = React.useMemo(() => {
+  if (!showOnlyReceivedByBoth || selectedOption !== "PMS Master Sheet") {
+    return finalTableData;
+  }
+  
+  return (finalTableData || []).filter((row) => {
+    // Check if both Store Received Date and Material Received Date (PSE) are filled
+    const hasStoreReceivedDate = row.storeReceivedDate && String(row.storeReceivedDate).trim() !== "";
+    const hasPseReceivedDate = row.materialReceivedDate && String(row.materialReceivedDate).trim() !== "";
+    const storeStatusReceived = row.storeStatus === "Received";
+    
+    // Return true only if both conditions are met
+    return hasStoreReceivedDate && hasPseReceivedDate && storeStatusReceived;
+  });
+}, [showOnlyReceivedByBoth, finalTableData, selectedOption]);
 
   useEffect(() => {
     if (!canAdminBulkDeletePmsRows || selectedOption !== "PMS Master Sheet") {
@@ -1491,12 +1549,27 @@ const [selectedSection, setSelectedSection] = useState("");
   };
 
   // ------------------ Fetch + filter data for table ------------------
-  const fetchIndentForms = useCallback(async () => {
+  const fetchIndentForms = useCallback(async ({
+    append = false,
+    skipOverride = 0,
+    forceFresh = false,
+  } = {}) => {
     try {
       const storedRole = localStorage.getItem("role") || "";
       const username = localStorage.getItem("username") || "";
+      const requestSkip = append ? skipOverride : 0;
+
+      if (append) {
+        setLoadingMoreRows(true);
+      } else {
+        setLoadingInitialRows(true);
+      }
+
       if (selectedOption === "System Logs") {
         setFilteredData([]);
+        setHasMoreRows(false);
+        setLoadedRowsCount(0);
+        setTotalRowsCount(0);
         return;
       }
 
@@ -1507,6 +1580,9 @@ const [selectedSection, setSelectedSection] = useState("");
         );
         const rows = res.data?.data || [];
         setFilteredData(Array.isArray(rows) ? rows : []);
+        setHasMoreRows(false);
+        setLoadedRowsCount(Array.isArray(rows) ? rows.length : 0);
+        setTotalRowsCount(Array.isArray(rows) ? rows.length : 0);
         return;
       }
 
@@ -1516,9 +1592,18 @@ const [selectedSection, setSelectedSection] = useState("");
         response = await getAllLocalPurchaseForms({
           role: storedRole,
           username,
+          limit: PAGE_SIZE,
+          skip: requestSkip,
+          forceFresh,
         });
       } else {
-        response = await getAllIndentForms({ role: storedRole, username });
+        response = await getAllIndentForms({
+          role: storedRole,
+          username,
+          limit: PAGE_SIZE,
+          skip: requestSkip,
+          forceFresh,
+        });
       }
 
       // Support both helper shapes:
@@ -1528,6 +1613,7 @@ const [selectedSection, setSelectedSection] = useState("");
         response?.data?.success !== undefined ? response.data : response;
       const ok = payload?.success === true;
       let rows = ok && Array.isArray(payload?.data) ? payload.data : [];
+      const pagination = payload?.pagination || {};
       const allSubmittedByNames = Array.from(
         new Set(
           (rows || [])
@@ -1648,10 +1734,26 @@ if (findBy === "Section" && selectedSection) {
         }
       }
 
-      setFilteredData(Array.isArray(rows) ? rows : []);
+      const safeRows = Array.isArray(rows) ? rows : [];
+      setFilteredData((prev) => (append ? [...prev, ...safeRows] : safeRows));
+      setHasMoreRows(Boolean(pagination?.hasMore));
+      setLoadedRowsCount(requestSkip + safeRows.length);
+      setTotalRowsCount(
+        Number.isFinite(Number(pagination?.total))
+          ? Number(pagination.total)
+          : requestSkip + safeRows.length,
+      );
     } catch (error) {
       console.error("? Error fetching Purchase data:", error);
-      setFilteredData([]);
+      if (!append) {
+        setFilteredData([]);
+        setLoadedRowsCount(0);
+        setTotalRowsCount(0);
+      }
+      setHasMoreRows(false);
+    } finally {
+      setLoadingInitialRows(false);
+      setLoadingMoreRows(false);
     }
   }, [
     selectedOption,
@@ -1669,6 +1771,17 @@ if (findBy === "Section" && selectedSection) {
     selectedSection, 
     endDate,
     API_BASE_URL,
+  ]);
+
+  const handleShowMoreRows = useCallback(() => {
+    if (loadingMoreRows || loadingInitialRows || !hasMoreRows) return;
+    fetchIndentForms({ append: true, skipOverride: loadedRowsCount });
+  }, [
+    fetchIndentForms,
+    hasMoreRows,
+    loadedRowsCount,
+    loadingInitialRows,
+    loadingMoreRows,
   ]);
 
   // ? FindBy dropdown handler
@@ -1723,7 +1836,7 @@ if (findBy === "Section" && selectedSection) {
 
   // Refetch when filters/option change
   useEffect(() => {
-    fetchIndentForms();
+    fetchIndentForms({ append: false, skipOverride: 0 });
   }, [fetchIndentForms]);
 
   // Load custom font once
@@ -1970,11 +2083,7 @@ if (findBy === "Section" && selectedSection) {
 
         // Refresh table so it reflects closed state
         try {
-          const refreshed = await getAllIndentForms({
-            role: localStorage.getItem("role"),
-            username: localStorage.getItem("username") || "",
-          });
-          if (refreshed?.success) setTableData(refreshed.data || []);
+          await fetchIndentForms({ append: false, skipOverride: 0, forceFresh: true });
         } catch (e) {
           console.warn("?? Refresh after manual close failed:", e);
         }
@@ -2074,7 +2183,7 @@ if (findBy === "Section" && selectedSection) {
       setUploadedFiles((prev) => ({ ...prev, [rowId]: file.name }));
 
       // ? Refresh to get updated row fields from DB
-      await fetchIndentForms();
+      await fetchIndentForms({ forceFresh: true });
     } catch (err) {
       // ? Show actual backend error text (very important)
       const backendMsg =
@@ -2207,7 +2316,7 @@ if (findBy === "Section" && selectedSection) {
         return next;
       });
 
-      await fetchIndentForms();
+      await fetchIndentForms({ forceFresh: true });
     } catch (error) {
       console.error("? Bulk delete failed:", error);
       alert(error?.message || "Failed to delete selected rows.");
@@ -2264,7 +2373,7 @@ if (findBy === "Section" && selectedSection) {
         );
         clearLpSelection();
         setChangedRows({});
-        await fetchIndentForms();
+        await fetchIndentForms({ forceFresh: true });
         return;
       } catch (err) {
         const msg =
@@ -2325,7 +2434,7 @@ if (findBy === "Section" && selectedSection) {
       alert("? Updates Saved Successfully!");
 
       // ?? Refresh data
-      await fetchIndentForms();
+      await fetchIndentForms({ forceFresh: true });
 
       // ? Reset changes
       setChangedRows({});
@@ -2544,6 +2653,7 @@ if (findBy === "Section" && selectedSection) {
             />
           )}
 
+
           <div className="mb-8 p-4 bg-red-600 rounded-xl shadow-md text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-white">
               Purchase
@@ -2561,7 +2671,7 @@ if (findBy === "Section" && selectedSection) {
               username={username}
             />
           )}
-
+          
           {selectedOption === "System Logs" && (
             <SystemLogsSection username={username} />
           )}
@@ -2577,6 +2687,7 @@ if (findBy === "Section" && selectedSection) {
             selectedOption !== "System Logs" &&
             selectedOption !== "Delay Followup" && (
               <div className="w-full max-h-[65vh] sm:max-h-[70vh] overflow-auto rounded-xl border border-gray-200">
+                
                 {selectedOption === "Store" && (
                   <StoreManualCloseSection
                     manualCloseUniqueId={manualCloseUniqueId}
@@ -2669,6 +2780,87 @@ if (findBy === "Section" && selectedSection) {
                     vendorOptions={vendorOptions}
                   />
                 )}
+                {selectedOption === "PMS Master Sheet" && (
+  <>
+    {/* Delete Section for Admin */}
+    {canAdminBulkDeletePmsRows && (
+      <div className="mb-4 border rounded-xl p-3 bg-red-50 shadow-sm">
+        {/* ... existing delete section content ... */}
+      </div>
+    )}
+
+    {/* ✅ ADD THE FILTER BUTTON HERE */}
+      {/* ✅ ADD THE FILTER BUTTONS HERE */}
+    <div className="mb-4 flex gap-3 justify-end">
+      <button
+        onClick={() => {
+          setShowOnlyReceivedByBoth(true);
+          setShowOnlyNotReceived(false);
+        }}
+        className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
+          showOnlyReceivedByBoth && !showOnlyNotReceived
+            ? "bg-green-600 text-white shadow-md hover:bg-green-700"
+            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+        }`}
+      >
+        <FaCheckCircle />
+        Both Received
+      </button>
+      
+      <button
+        onClick={() => {
+          setShowOnlyReceivedByBoth(false);
+          setShowOnlyNotReceived(true);
+        }}
+        className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
+          showOnlyNotReceived && !showOnlyReceivedByBoth
+            ? "bg-orange-600 text-white shadow-md hover:bg-orange-700"
+            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+        }`}
+      >
+        <FaTruck />
+        Not Yet Received
+      </button>
+      
+      <button
+        onClick={() => {
+          setShowOnlyReceivedByBoth(false);
+          setShowOnlyNotReceived(false);
+        }}
+        className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
+          !showOnlyReceivedByBoth && !showOnlyNotReceived
+            ? "bg-blue-600 text-white shadow-md hover:bg-blue-700"
+            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+        }`}
+      >
+        Show All
+      </button>
+    </div>
+
+    {/* Show filter status message */}
+    {showOnlyReceivedByBoth && (
+      <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+        <FaCheckCircle className="inline mr-1" />
+        Showing only items where BOTH Store and PSE have confirmed receipt
+      </div>
+    )}
+    
+    {showOnlyNotReceived && (
+      <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-700">
+        <FaTruck className="inline mr-1" />
+        Showing only items NOT YET received by both (missing Store or PSE receipt)
+      </div>
+    )}
+
+    {/* Optional: Show filter status */}
+    {showOnlyReceivedByBoth && (
+      <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+        <FaCheckCircle className="inline mr-1" />
+        Filter active: Showing only items where both Store and PSE have confirmed receipt
+      </div>
+    )}
+  </>
+)}
 
                 {selectedOption === "PMS Master Sheet" &&
                   canAdminBulkDeletePmsRows && (
@@ -2706,6 +2898,8 @@ if (findBy === "Section" && selectedSection) {
                       </div>
                     </div>
                   )}
+                  
+                  
 
                 <table className="min-w-max border border-gray-200 rounded-xl whitespace-nowrap text-xs">
                   <thead className="bg-gray-200 rounded-t-xl sticky top-0 z-20">
@@ -3002,6 +3196,7 @@ if (findBy === "Section" && selectedSection) {
                               </th>
                             </>
                           )}
+                          
 
                           {selectedOption === "Get Quotation" && (
                             <>
@@ -3229,14 +3424,14 @@ if (findBy === "Section" && selectedSection) {
                   </thead>
 
                   <tbody>
-                    {finalTableData.map((row, index) => (
+                    {pmsFilteredData.map((row, index) => (
                       <React.Fragment key={row._id || index}>
                         {selectedOption === "Comparison Statement" ? (
                           /* ------------- ONLY FOR COMPARISON STATEMENT ------------- */
                           <tr
                             key={row._id || index}
                             className={`
-      h-4 transition
+                          h-4 transition
       ${
         row.comparisonStatementStatus === "Reopen"
           ? "bg-yellow-200 hover:bg-yellow-300"
@@ -3968,6 +4163,7 @@ if (findBy === "Section" && selectedSection) {
                                 row.indentNumber
                               )}
                             </td>
+                            
 
                             {/* ITEM NUMBER */}
                             <td className="px-4 py-2 border-b">
@@ -5920,6 +6116,24 @@ if (findBy === "Section" && selectedSection) {
                     ))}
                   </tbody>
                 </table>
+
+                {(hasMoreRows || loadingInitialRows || loadingMoreRows) && (
+                  <div className="flex flex-col items-center gap-3 border-x border-b border-gray-200 bg-white px-4 py-4">
+                    <div className="text-xs text-gray-600">
+                      Loaded {loadedRowsCount} of {totalRowsCount || loadedRowsCount} records
+                    </div>
+                    {hasMoreRows && (
+                      <button
+                        type="button"
+                        onClick={handleShowMoreRows}
+                        disabled={loadingInitialRows || loadingMoreRows}
+                        className="rounded-full bg-red-600 px-5 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        {loadingMoreRows ? "Loading..." : "Show More"}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
         </Motion.div>

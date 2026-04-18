@@ -14,6 +14,10 @@ const API_ORIGIN = (
   import.meta.env.VITE_API_URL || "https://pms-backend-main.vercel.app"
 ).replace(/\/+$/, "");
 const API_BASE = `${API_ORIGIN}/indent`;
+const LIST_CACHE_PREFIX = "indent-list-cache::";
+const LIST_CACHE_TTL_MS = 60 * 1000;
+const memoryListCache = new Map();
+const inflightListRequests = new Map();
 
 const getClientSystemName = () => {
   if (typeof navigator === "undefined") return "";
@@ -48,6 +52,116 @@ if (import.meta.env.MODE === "development") {
  * - supports JSON and FormData
  * - supports query params
  */
+const isBrowserStorageAvailable = () =>
+  typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
+
+const buildListCacheKey = (scope, payload = {}) => {
+  const keyPayload = {
+    role: String(payload.role || "").trim(),
+    username: String(payload.username || "").trim(),
+    limit: Number(payload.limit || 0),
+    skip: Number(payload.skip || 0),
+  };
+
+  return `${LIST_CACHE_PREFIX}${scope}::${JSON.stringify(keyPayload)}`;
+};
+
+const readListCache = (cacheKey) => {
+  const now = Date.now();
+  const memoryEntry = memoryListCache.get(cacheKey);
+  if (memoryEntry && memoryEntry.expiresAt > now) {
+    return memoryEntry.value;
+  }
+  if (memoryEntry) {
+    memoryListCache.delete(cacheKey);
+  }
+
+  if (!isBrowserStorageAvailable()) return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(cacheKey);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed?.expiresAt || parsed.expiresAt <= now) {
+      window.sessionStorage.removeItem(cacheKey);
+      return null;
+    }
+
+    memoryListCache.set(cacheKey, parsed);
+    return parsed.value;
+  } catch (error) {
+    console.warn("List cache read failed:", error);
+    return null;
+  }
+};
+
+const writeListCache = (cacheKey, value) => {
+  const entry = {
+    value,
+    expiresAt: Date.now() + LIST_CACHE_TTL_MS,
+  };
+
+  memoryListCache.set(cacheKey, entry);
+
+  if (!isBrowserStorageAvailable()) return;
+
+  try {
+    window.sessionStorage.setItem(cacheKey, JSON.stringify(entry));
+  } catch (error) {
+    console.warn("List cache write failed:", error);
+  }
+};
+
+export const invalidateIndentListCache = () => {
+  memoryListCache.clear();
+  inflightListRequests.clear();
+
+  if (!isBrowserStorageAvailable()) return;
+
+  try {
+    const keysToDelete = [];
+    for (let index = 0; index < window.sessionStorage.length; index += 1) {
+      const key = window.sessionStorage.key(index);
+      if (key && key.startsWith(LIST_CACHE_PREFIX)) {
+        keysToDelete.push(key);
+      }
+    }
+    keysToDelete.forEach((key) => window.sessionStorage.removeItem(key));
+  } catch (error) {
+    console.warn("List cache invalidation failed:", error);
+  }
+};
+
+const getCachedListResponse = async (
+  scope,
+  endpoint,
+  payload,
+  { forceFresh = false } = {},
+) => {
+  const cacheKey = buildListCacheKey(scope, payload);
+
+  if (!forceFresh) {
+    const cached = readListCache(cacheKey);
+    if (cached) return cached;
+
+    const inflight = inflightListRequests.get(cacheKey);
+    if (inflight) return inflight;
+  }
+
+  const requestPromise = apiRequest(endpoint, "POST", payload)
+    .then((result) => {
+      writeListCache(cacheKey, result);
+      return result;
+    })
+    .finally(() => {
+      inflightListRequests.delete(cacheKey);
+    });
+
+  inflightListRequests.set(cacheKey, requestPromise);
+  return requestPromise;
+};
+
 export async function apiRequest(
   endpoint,
   method = "GET",
@@ -134,6 +248,7 @@ export const updatePurchaseRow = async (id, updatedData) => {
     );
     console.log("✅ Backend Response:", response);
     console.log("===============================================");
+    invalidateIndentListCache();
     return response;
   } catch (error) {
     console.error("❌ Error updating purchase row:", error);
@@ -150,6 +265,7 @@ export const updateLocalPurchaseRow = async (id, updatedData) => {
     );
     console.log("✅ Backend Response:", response);
     console.log("===============================================");
+    invalidateIndentListCache();
     return response;
   } catch (error) {
     console.error("❌ Error updating local purchase row:", error);
@@ -163,12 +279,16 @@ export const updateLocalPurchaseRow = async (id, updatedData) => {
 
 export async function createIndentForm(data) {
   console.log("📝 Creating Indent Form:", data);
-  return await apiRequest("/", "POST", data);
+  const response = await apiRequest("/", "POST", data);
+  invalidateIndentListCache();
+  return response;
 }
 
 export async function createLocalPurchaseForm(data) {
   console.log("📝 Creating Local Purchase Form:", data);
-  return await apiRequest("/localpurchase", "POST", data);
+  const response = await apiRequest("/localpurchase", "POST", data);
+  invalidateIndentListCache();
+  return response;
 }
 
 // ==============================
@@ -176,14 +296,36 @@ export async function createLocalPurchaseForm(data) {
 // Backend expects POST body: { role, username }
 // ==============================
 
-export async function getAllIndentForms({ role, username } = {}) {
+export async function getAllIndentForms({
+  role,
+  username,
+  limit,
+  skip,
+  forceFresh = false,
+} = {}) {
   console.log("📥 Fetching All Indent Forms With Role & Username");
-  return await apiRequest("/all", "POST", { role, username });
+  return await getCachedListResponse(
+    "purchase",
+    "/all",
+    { role, username, limit, skip },
+    { forceFresh },
+  );
 }
 
-export async function getAllLocalPurchaseForms({ role, username } = {}) {
+export async function getAllLocalPurchaseForms({
+  role,
+  username,
+  limit,
+  skip,
+  forceFresh = false,
+} = {}) {
   console.log("Fetching All Local Purchase Forms With Role & Username");
-  return await apiRequest("/localpurchase/all", "POST", { role, username });
+  return await getCachedListResponse(
+    "localpurchase",
+    "/localpurchase/all",
+    { role, username, limit, skip },
+    { forceFresh },
+  );
 }
 
 export async function getVendorMasterList(query = "") {
@@ -218,12 +360,16 @@ export async function getIndentFormById(indentId) {
 
 export async function updateIndentForm(indentId, data) {
   console.log(`✏️ Updating Indent Form → ID: ${indentId}`, data);
-  return await apiRequest(`/${indentId}`, "PUT", data);
+  const response = await apiRequest(`/${indentId}`, "PUT", data);
+  invalidateIndentListCache();
+  return response;
 }
 
 export async function deleteIndentForm(indentId) {
   console.log(`🗑️ Deleting Indent Form → ID: ${indentId}`);
-  return await apiRequest(`/${indentId}`, "DELETE");
+  const response = await apiRequest(`/${indentId}`, "DELETE");
+  invalidateIndentListCache();
+  return response;
 }
 
 // ==============================
@@ -238,12 +384,16 @@ export async function getPurchaseByUniqueId(uniqueId) {
 
 /** Manually close store for a given Unique ID */
 export async function manualCloseStoreUniqueId(payload) {
-  return await apiRequest(`/store/manual-close`, "POST", payload || {});
+  const response = await apiRequest(`/store/manual-close`, "POST", payload || {});
+  invalidateIndentListCache();
+  return response;
 }
 
 /** Bulk add ids to Local Purchase */
 export async function addToLocalPurchase(payload) {
-  return await apiRequest(`/add-to-localPurchase`, "POST", payload || {});
+  const response = await apiRequest(`/add-to-localPurchase`, "POST", payload || {});
+  invalidateIndentListCache();
+  return response;
 }
 
 /**
@@ -262,6 +412,7 @@ export async function uploadComparisonPDF(rowId, file) {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
+  invalidateIndentListCache();
   return res.data;
 }
 
@@ -291,6 +442,7 @@ export const uploadInvoicePDF = async (rowId, file, { username = "" } = {}) => {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
+  invalidateIndentListCache();
   return res.data;
 };
 
@@ -333,6 +485,7 @@ export const createStoreInvoiceAndLinkItems = async (payload, file) => {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
+  invalidateIndentListCache();
   return res.data;
 };
 
@@ -367,6 +520,7 @@ export const uploadPoPDF = async (
     headers: { "Content-Type": "multipart/form-data" },
   });
 
+  invalidateIndentListCache();
   return res.data;
 };
 
@@ -408,6 +562,7 @@ export const createPoAndLinkItems = async (payload, file) => {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
+  invalidateIndentListCache();
   return res.data;
 };
 
@@ -416,7 +571,9 @@ export const createPoAndLinkItems = async (payload, file) => {
 // ==============================
 
 export const bulkUpdateLocalPurchaseSelected = async (payload) => {
-  return await apiRequest(`/localpurchase/bulk-update`, "PUT", payload || {});
+  const response = await apiRequest(`/localpurchase/bulk-update`, "PUT", payload || {});
+  invalidateIndentListCache();
+  return response;
 };
 
 // ==============================
@@ -454,6 +611,7 @@ export const uploadIndentVerificationPdfBulk = async (
     headers: { "Content-Type": "multipart/form-data" },
   });
 
+  invalidateIndentListCache();
   return res.data;
 };
 
@@ -493,6 +651,7 @@ export const uploadGetQuotationPDF = async (
     headers: { "Content-Type": "multipart/form-data" },
   });
 
+  invalidateIndentListCache();
   return res.data;
 };
 
