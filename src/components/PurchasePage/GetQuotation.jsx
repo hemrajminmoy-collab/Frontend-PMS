@@ -77,34 +77,18 @@ const getNavLinksByRole = (role, username) => {
       { name: "PC and Payment", icon: <FaMoneyCheckAlt /> },
       { name: "Transport", icon: <FaShip /> },
       { name: "Material Received", icon: <FaTruck /> },
-      { name: "Summary Rep  ort", icon: <FaClipboardList /> },
+      { name: "Summary Report", icon: <FaClipboardList /> },
+      { name: "PMS Master Sheet", icon: <FaClipboardList /> },
+      { name: "PC Follow Up", icon: <FaPhoneAlt /> },
+      { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
+      { name: "Store", icon: <FaTruck /> },
+      { name: "Delay Followup", icon: <FaClipboardList /> },
+      { name: "System Logs", icon: <FaClipboardList /> },
     ],
   };
 
-  if (role === "PSE") {
-    menu = {
-      "Executive FMS Section": [
-        { name: "Indent Verification", icon: <FaClipboardCheck /> },
-        { name: "Comparison Statement", icon: <FaBalanceScale /> },
-        { name: "Technical Approval", icon: <FaCheckCircle /> },
-        { name: "Commercial Negotiation", icon: <FaHandshake /> },
-        { name: "PO Generation", icon: <FaFileSignature /> },
-        { name: "Material Received", icon: <FaTruck /> },
-        { name: "Local Purchase", icon: <FaStore /> },
-        { name: "PC Follow Up", icon: <FaPhoneAlt /> },
-        { name: "Summary Report", icon: <FaClipboardList /> },
-      ],
-    };
-  }
-  else if (role === "PC" && normalizedUsername === "Anindita Chakraborty") {
-    menu = {
-      "Executive FMS Section": [
-        { name: "PC Follow Up", icon: <FaPhoneAlt /> },
-        { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
-        { name: "Transport", icon: <FaShip /> },
-
-      ],
-    };
+  if (role === "PC" && normalizedUsername === "Anindita Chakraborty") {
+    menu = menu;
   } 
   // else if (role === "PC" && normalizedUsername === "Debasish Samanta PO") {
   //   menu = {
@@ -115,71 +99,23 @@ const getNavLinksByRole = (role, username) => {
   //   };
   // } 
   else if (role === "PA" && isDebasishPoUploadOnlyUsername) {
-    menu = {
-      "Executive FMS Section": [
-        { name: "PO Generation", icon: <FaFileSignature /> },
-      ],
-    };
+    menu = menu;
   } else if (role === "PA") {
-    menu = {
-      "Executive FMS Section": [
-        { name: "Get Quotation", icon: <FaFileAlt /> },
-        { name: "Comparison Statement", icon: <FaBalanceScale /> },
-        { name: "PO Generation", icon: <FaFileSignature /> },
-        { name: "Summary Report", icon: <FaClipboardList /> },
-      ],
-    };
+    menu = menu;
   } else if (role === "PAC") {
-    menu = {
-      "Executive FMS Section": [
-        { name: "Payment Follow Up", icon: <FaMoneyCheckAlt /> },
-        { name: "Summary Report", icon: <FaClipboardList /> },
-      ],
-    };
+    menu = menu;
   } else if (role === "PC") {
-    menu = {
-      "Executive FMS Section": [
-        { name: "PC Follow Up", icon: <FaPhoneAlt /> },
-        { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
-        { name: "Transport", icon: <FaShip /> },
-        { name: "Summary Report", icon: <FaClipboardList /> },
-      ],
-    };
+    menu = menu;
   } 
   else if (role === "ADMIN" && normalizedUsername === "Sumona") {
-    menu = {
-      "Executive FMS Section": [
-        { name: "Summary Report", icon: <FaClipboardList /> },
-        { name: "Transport", icon: <FaShip /> },
-        { name: "PC Follow Up", icon: <FaPhoneAlt /> },
-      ],
-    };
+    menu = menu;
   }
   
   
   else if (role === "ADMIN") {
-    menu = {
-      "Executive FMS Section": [
-        { name: "PMS Master Sheet", icon: <FaClipboardList /> },
-        { name: "PC Follow Up", icon: <FaPhoneAlt /> },
-        { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
-        { name: "Local Purchase", icon: <FaStore /> },
-        { name: "Transport", icon: <FaShip /> },
-        { name: "Store", icon: <FaTruck /> },
-        { name: "Material Received", icon: <FaTruck /> },
-        { name: "Summary Report", icon: <FaClipboardList /> },
-      ],
-    };
+    menu = menu;
   } else if (role === "Store") {
-    menu = {
-      "Executive FMS Section": [
-        { name: "Store", icon: <FaTruck /> },
-        { name: "Material Received", icon: <FaTruck /> },
-        { name: "PO Generation", icon: <FaFileSignature /> },
-        { name: "Local Purchase", icon: <FaStore /> },
-        { name: "Summary Report", icon: <FaClipboardList /> },
-      ],
-    };
+    menu = menu;
   }
 
   if (isLogViewerUser && (normalizedRole === "ADMIN" && normalizedUsername === "Minmoy") ) {
@@ -342,6 +278,7 @@ const [selectedSection, setSelectedSection] = useState("");
   const [lpBulkVendorName, setLpBulkVendorName] = useState("");
   const [vendorOptions, setVendorOptions] = useState([]);
   const [poVendorSearchLoading, setPoVendorSearchLoading] = useState(false);
+  const [completionStatusFilter, setCompletionStatusFilter] = useState("");
 
   const handleSearchPoVendors = useCallback(async (query) => {
     const q = String(query || "").trim();
@@ -1553,6 +1490,7 @@ const pmsBothReceivedFilteredData = React.useMemo(() => {
     append = false,
     skipOverride = 0,
     forceFresh = false,
+    limitOverride,
   } = {}) => {
     try {
       const storedRole = localStorage.getItem("role") || "";
@@ -1592,7 +1530,7 @@ const pmsBothReceivedFilteredData = React.useMemo(() => {
         response = await getAllLocalPurchaseForms({
           role: storedRole,
           username,
-          limit: PAGE_SIZE,
+          limit: limitOverride || PAGE_SIZE,
           skip: requestSkip,
           forceFresh,
         });
@@ -1600,7 +1538,7 @@ const pmsBothReceivedFilteredData = React.useMemo(() => {
         response = await getAllIndentForms({
           role: storedRole,
           username,
-          limit: PAGE_SIZE,
+          limit: limitOverride || PAGE_SIZE,
           skip: requestSkip,
           forceFresh,
         });
@@ -1708,6 +1646,15 @@ if (findBy === "Section" && selectedSection) {
         );
       }
 
+      // -------- FILTER BY COMPLETION STATUS --------
+      if (findBy === "CompletionStatus") {
+        if (completionStatusFilter === "Completed") {
+          rows = rows.filter((item) => item.materialReceivedDate && item.storeReceivedDate);
+        } else if (completionStatusFilter === "Not Completed") {
+          rows = rows.filter((item) => !(item.materialReceivedDate && item.storeReceivedDate));
+        }
+      }
+
       // -------- STORE FILTER BY I.N --------
       if (selectedOption === "Store" && findBy === "IN") {
         const q = String(storeInFilter || "").trim().toLowerCase();
@@ -1770,12 +1717,13 @@ if (findBy === "Section" && selectedSection) {
     startDate,
     selectedSection, 
     endDate,
+    completionStatusFilter,
     API_BASE_URL,
   ]);
 
   const handleShowMoreRows = useCallback(() => {
     if (loadingMoreRows || loadingInitialRows || !hasMoreRows) return;
-    fetchIndentForms({ append: true, skipOverride: loadedRowsCount });
+    fetchIndentForms({ append: true, skipOverride: loadedRowsCount, limitOverride: 10000 });
   }, [
     fetchIndentForms,
     hasMoreRows,
@@ -1798,6 +1746,7 @@ if (findBy === "Section" && selectedSection) {
     setPoNumberFilter("");
     setVendorNameFilter("");
     setDate("");
+    setCompletionStatusFilter("");
     setStartDate("");
     setEndDate("");
     setSelectedSection("");
@@ -2649,6 +2598,8 @@ if (findBy === "Section" && selectedSection) {
               setEndDate={setEndDate}
               selectedSection={selectedSection}
               setSelectedSection={setSelectedSection}
+              completionStatusFilter={completionStatusFilter}
+              setCompletionStatusFilter={setCompletionStatusFilter}
                 
             />
           )}
@@ -6129,7 +6080,7 @@ if (findBy === "Section" && selectedSection) {
                         disabled={loadingInitialRows || loadingMoreRows}
                         className="rounded-full bg-red-600 px-5 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
                       >
-                        {loadingMoreRows ? "Loading..." : "Show More"}
+                        {loadingMoreRows ? "Loading..." : "Load All Records"}
                       </button>
                     )}
                   </div>

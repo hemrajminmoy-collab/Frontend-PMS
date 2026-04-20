@@ -38,6 +38,8 @@ export default function PurchaseFilterBar({
   setStartDate,
   endDate,
   setEndDate,
+  completionStatusFilter,
+  setCompletionStatusFilter,
 }) {
   const [submittedBySearch, setSubmittedBySearch] = useState("");
 
@@ -143,6 +145,7 @@ export default function PurchaseFilterBar({
           <option value="Name">Name</option>
           <option value="PoNumber">PO Number</option>
           <option value="VendorName">Vendor Name</option>
+          <option value="CompletionStatus">Completion Status</option>
           {selectedOption === "PMS Master Sheet" && (
             <option value="UniqueId">Unique Number</option>
           )}
@@ -255,6 +258,18 @@ export default function PurchaseFilterBar({
               ))}
             </datalist>
           </div>
+        )}
+
+        {findBy === "CompletionStatus" && (
+          <select
+            value={completionStatusFilter}
+            onChange={(e) => setCompletionStatusFilter(e.target.value)}
+            className="border p-1 rounded-lg text-xs"
+          >
+            <option value="">All</option>
+            <option value="Completed">Completed</option>
+            <option value="Not Completed">Not Completed</option>
+          </select>
         )}
 
         {selectedOption === "PMS Master Sheet" && findBy === "UniqueId" && (
