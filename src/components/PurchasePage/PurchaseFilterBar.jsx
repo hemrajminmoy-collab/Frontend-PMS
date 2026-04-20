@@ -145,7 +145,15 @@ export default function PurchaseFilterBar({
           <option value="Name">Name</option>
           <option value="PoNumber">PO Number</option>
           <option value="VendorName">Vendor Name</option>
-          <option value="CompletionStatus">Completion Status</option>
+          {(selectedOption === "Get Quotation" ||
+            selectedOption === "Comparison Statement" ||
+            selectedOption === "Technical Approval" ||
+            selectedOption === "Commercial Negotiation" ||
+            selectedOption === "PO Generation" ||
+            selectedOption === "Material Received" ||
+            selectedOption === "PMS Master Sheet") && (
+            <option value="CompletionStatus">Section Completion</option>
+          )}
           {selectedOption === "PMS Master Sheet" && (
             <option value="UniqueId">Unique Number</option>
           )}

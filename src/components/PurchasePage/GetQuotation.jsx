@@ -49,8 +49,10 @@ import {
 const getNavLinksByRole = (role, username) => {
   const normalizedUsername = String(username || "").trim();
   const normalizedLowerUsername = normalizedUsername.toLowerCase();
-  const normalizedRole = String(role || "").trim().toUpperCase();
-  const isDebasishPoUploadOnlyUsername = 
+  const normalizedRole = String(role || "")
+    .trim()
+    .toUpperCase();
+  const isDebasishPoUploadOnlyUsername =
     normalizedLowerUsername === "debasish samanta po" ||
     normalizedLowerUsername === "debasis samanta po";
   const isLogViewerUser =
@@ -88,8 +90,15 @@ const getNavLinksByRole = (role, username) => {
   };
 
   if (role === "PC" && normalizedUsername === "Anindita Chakraborty") {
-    menu = menu;
-  } 
+    menu = {
+      "Executive FMS Section": [{ name: "Transport", icon: <FaShip /> },
+      { name: "Summary Report", icon: <FaClipboardList /> },
+      { name: "PC Follow Up", icon: <FaPhoneAlt /> },
+        
+      ],
+
+    };
+  }
   // else if (role === "PC" && normalizedUsername === "Debasish Samanta PO") {
   //   menu = {
   //     "Executive FMS Section": [
@@ -97,28 +106,92 @@ const getNavLinksByRole = (role, username) => {
   //       { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
   //     ],
   //   };
-  // } 
+  // }
   else if (role === "PA" && isDebasishPoUploadOnlyUsername) {
-    menu = menu;
+    menu = {
+      "Executive FMS Section": [
+        { name: "PO Generation", icon: <FaFileSignature /> },
+      ],
+    };
+  } else if (role === "PSE") {
+    menu = {
+      "Executive FMS Section": [
+        { name: "Indent Verification", icon: <FaClipboardCheck /> },
+        { name: "Get Quotation", icon: <FaFileAlt /> },
+        { name: "Comparison Statement", icon: <FaBalanceScale /> },
+        { name: "Technical Approval", icon: <FaCheckCircle /> },
+        { name: "Commercial Negotiation", icon: <FaHandshake /> },
+        { name: "Local Purchase", icon: <FaStore /> },
+        { name: "PO Generation", icon: <FaFileSignature /> },
+      { name: "Summary Report", icon: <FaClipboardList /> },
+        { name: "PC Follow Up", icon: <FaPhoneAlt /> },
+        { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
+        { name: "Store", icon: <FaTruck /> },
+      ],
+    };
   } else if (role === "PA") {
-    menu = menu;
+    menu = {
+      "Executive FMS Section": [
+        { name: "Indent Verification", icon: <FaClipboardCheck /> },
+        { name: "Get Quotation", icon: <FaFileAlt /> },
+        { name: "Comparison Statement", icon: <FaBalanceScale /> },
+        { name: "Technical Approval", icon: <FaCheckCircle /> },
+        { name: "Commercial Negotiation", icon: <FaHandshake /> },
+        { name: "Local Purchase", icon: <FaStore /> },
+        { name: "PO Generation", icon: <FaFileSignature /> },
+      ],
+    };
   } else if (role === "PAC") {
-    menu = menu;
+    menu = {
+      "Executive FMS Section": [
+
+        { name: "Technical Approval", icon: <FaCheckCircle /> },
+        { name: "Commercial Negotiation", icon: <FaHandshake /> },
+        { name: "Local Purchase", icon: <FaStore /> },
+        { name: "PO Generation", icon: <FaFileSignature /> },
+        { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
+      ],
+    };
   } else if (role === "PC") {
-    menu = menu;
-  } 
-  else if (role === "ADMIN" && normalizedUsername === "Sumona") {
-    menu = menu;
-  }
-  
-  
-  else if (role === "ADMIN") {
+    menu = {
+      "Executive FMS Section": [
+        { name: "Indent Verification", icon: <FaClipboardCheck /> },
+        { name: "Get Quotation", icon: <FaFileAlt /> },
+        { name: "Comparison Statement", icon: <FaBalanceScale /> },
+        { name: "Technical Approval", icon: <FaCheckCircle /> },
+        { name: "Commercial Negotiation", icon: <FaHandshake /> },
+        { name: "Local Purchase", icon: <FaStore /> },
+        { name: "PO Generation", icon: <FaFileSignature /> },
+        { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
+        { name: "Store", icon: <FaTruck /> },
+      ],
+    };
+  } else if (role === "ADMIN" && normalizedUsername === "Sumona") {
+    menu = {
+      "Executive FMS Section": [
+      { name: "PC Follow Up", icon: <FaPhoneAlt /> },
+      { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
+      { name: "Summary Report", icon: <FaClipboardList /> },
+      ],
+    };
+  } else if (role === "ADMIN") {
     menu = menu;
   } else if (role === "Store") {
-    menu = menu;
+    menu = {
+      "Executive FMS Section": [
+        { name: "PO Generation", icon: <FaFileSignature /> },
+        { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
+        { name: "Store", icon: <FaTruck /> },
+        { name: "Summary Report", icon: <FaClipboardList /> },
+      ],
+    };
   }
 
-  if (isLogViewerUser && (normalizedRole === "ADMIN" && normalizedUsername === "Minmoy") ) {
+  if (
+    isLogViewerUser &&
+    normalizedRole === "ADMIN" &&
+    normalizedUsername === "Minmoy"
+  ) {
     const sectionKey = "Executive FMS Section";
     const links = menu[sectionKey] || [];
     if (!links.some((link) => link.name === "System Logs")) {
@@ -134,14 +207,25 @@ const getNavLinksByRole = (role, username) => {
 
   const sectionKey = "Executive FMS Section";
   const links = menu[sectionKey] || [];
-  const canUseDelayFollowup = ["ADMIN", "PSE", "PA", "PC", "PAC", "STORE"].includes(
-    normalizedRole,
-  );
+  const canUseDelayFollowup = [
+    "ADMIN",
+    "PSE",
+    "PA",
+    "PC",
+    "PAC",
+    "STORE",
+  ].includes(normalizedRole);
 
-  if (canUseDelayFollowup && !links.some((link) => link.name === "Delay Followup")) {
+  if (
+    canUseDelayFollowup &&
+    !links.some((link) => link.name === "Delay Followup")
+  ) {
     menu = {
       ...menu,
-      [sectionKey]: [...links, { name: "Delay Followup", icon: <FaClipboardList /> }],
+      [sectionKey]: [
+        ...links,
+        { name: "Delay Followup", icon: <FaClipboardList /> },
+      ],
     };
   }
 
@@ -155,7 +239,8 @@ export default function PurchasePage() {
   const role = localStorage.getItem("role") || "";
   const username = localStorage.getItem("username") || "";
   const normalizedCurrentUsername = String(username || "").trim();
-  const normalizedLowerCurrentUsername = normalizedCurrentUsername.toLowerCase();
+  const normalizedLowerCurrentUsername =
+    normalizedCurrentUsername.toLowerCase();
   const isDebasishPoUploadOnlyUsername =
     normalizedLowerCurrentUsername === "debasish samanta po" ||
     normalizedLowerCurrentUsername === "debasis samanta po";
@@ -171,8 +256,7 @@ export default function PurchasePage() {
   // --- Generate navLinks AFTER role is known ---
   const navLinks = getNavLinksByRole(role, username);
   const getDefaultOption = (role) => {
-    if (role === "PA" && isDebasishPoUploadOnlyUser)
-      return "PO Generation";
+    if (role === "PA" && isDebasishPoUploadOnlyUser) return "PO Generation";
     if (role === "ADMIN") return "PMS Master Sheet";
     if (role === "PA") return "Get Quotation";
     if (role === "PSE") return "Indent Verification";
@@ -181,7 +265,7 @@ export default function PurchasePage() {
     if (role === "Store") return "Store";
     return "";
   };
-const [selectedSection, setSelectedSection] = useState("");
+  const [selectedSection, setSelectedSection] = useState("");
 
   const [selectedOption, setSelectedOption] = useState(getDefaultOption(role));
   const [tableData, setTableData] = useState([]);
@@ -271,7 +355,6 @@ const [selectedSection, setSelectedSection] = useState("");
       inputAuditTimersRef.current.clear();
     };
   }, []);
-  
 
   const [vendorNameFilter, setVendorNameFilter] = useState("");
   const [poBulkVendorName, setPoBulkVendorName] = useState("");
@@ -280,45 +363,47 @@ const [selectedSection, setSelectedSection] = useState("");
   const [poVendorSearchLoading, setPoVendorSearchLoading] = useState(false);
   const [completionStatusFilter, setCompletionStatusFilter] = useState("");
 
-  const handleSearchPoVendors = useCallback(async (query) => {
-    const q = String(query || "").trim();
-    if (q.length < 2) {
-      setVendorOptions([]);
-      return;
-    }
+  const handleSearchPoVendors = useCallback(
+    async (query) => {
+      const q = String(query || "").trim();
+      if (q.length < 2) {
+        setVendorOptions([]);
+        return;
+      }
 
-    setPoVendorSearchLoading(true);
-    try {
-      const response = await getVendorMasterList(q);
-      const payload = response?.data?.success !== undefined ? response.data : response;
-      const data = Array.isArray(payload?.data) ? payload.data : [];
-      const uniqueVendorMap = new Map();
-      data.forEach((vendor) => {
-        const name = String(vendor?.name || "").trim();
-        if (!name) return;
-        const key = name.toLowerCase();
-        if (!uniqueVendorMap.has(key)) uniqueVendorMap.set(key, name);
-      });
-      const uniqueNames = Array.from(uniqueVendorMap.values()).sort((a, b) =>
-        a.localeCompare(b),
-      );
-      setVendorOptions(uniqueNames);
-    } catch (error) {
-      console.error("Vendor master search failed:", error);
-      setVendorOptions([]);
-    } finally {
-      setPoVendorSearchLoading(false);
-    }
-  }, [setVendorOptions, setPoVendorSearchLoading]);
+      setPoVendorSearchLoading(true);
+      try {
+        const response = await getVendorMasterList(q);
+        const payload =
+          response?.data?.success !== undefined ? response.data : response;
+        const data = Array.isArray(payload?.data) ? payload.data : [];
+        const uniqueVendorMap = new Map();
+        data.forEach((vendor) => {
+          const name = String(vendor?.name || "").trim();
+          if (!name) return;
+          const key = name.toLowerCase();
+          if (!uniqueVendorMap.has(key)) uniqueVendorMap.set(key, name);
+        });
+        const uniqueNames = Array.from(uniqueVendorMap.values()).sort((a, b) =>
+          a.localeCompare(b),
+        );
+        setVendorOptions(uniqueNames);
+      } catch (error) {
+        console.error("Vendor master search failed:", error);
+        setVendorOptions([]);
+      } finally {
+        setPoVendorSearchLoading(false);
+      }
+    },
+    [setVendorOptions, setPoVendorSearchLoading],
+  );
 
   useEffect(() => {
     if (vendorSearchTimerRef.current) {
       clearTimeout(vendorSearchTimerRef.current);
     }
 
-    const queryTerm = String(
-      lpBulkVendorName || vendorNameFilter || "",
-    ).trim();
+    const queryTerm = String(lpBulkVendorName || vendorNameFilter || "").trim();
 
     vendorSearchTimerRef.current = setTimeout(() => {
       handleSearchPoVendors(queryTerm);
@@ -340,8 +425,8 @@ const [selectedSection, setSelectedSection] = useState("");
   const [showExcessBox, setShowExcessBox] = useState(false);
   const [manualCloseLoading, setManualCloseLoading] = useState(false);
 
-const [showOnlyReceivedByBoth, setShowOnlyReceivedByBoth] = useState(false);
-const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
+  const [showOnlyReceivedByBoth, setShowOnlyReceivedByBoth] = useState(false);
+  const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
   const [findBy, setFindBy] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
   const [selectedName, setSelectedName] = useState("");
@@ -349,14 +434,14 @@ const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
   const [submittedByOptions, setSubmittedByOptions] = useState([]);
   const [masterUniqueIdFilter, setMasterUniqueIdFilter] = useState("");
   const sectionOptions = React.useMemo(() => {
-  const uniqueSections = new Set();
-  (tableData || []).forEach((row) => {
-    const section = String(row.section || "").trim();
-    if (section) uniqueSections.add(section);
-  });
-  const sorted = Array.from(uniqueSections).sort();
-  return ["(No Section)", ...sorted];  // Add special option
-}, [tableData]);
+    const uniqueSections = new Set();
+    (tableData || []).forEach((row) => {
+      const section = String(row.section || "").trim();
+      if (section) uniqueSections.add(section);
+    });
+    const sorted = Array.from(uniqueSections).sort();
+    return ["(No Section)", ...sorted]; // Add special option
+  }, [tableData]);
   const [storeInFilter, setStoreInFilter] = useState("");
   const [storeItemDescriptionFilter, setStoreItemDescriptionFilter] =
     useState("");
@@ -453,12 +538,20 @@ const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
   }, []);
 
   const isDoneStatus = useCallback((value) => {
-    return String(value || "").trim().toUpperCase() === "DONE";
+    return (
+      String(value || "")
+        .trim()
+        .toUpperCase() === "DONE"
+    );
   }, []);
 
   const getEffectiveStatusValue = useCallback((row, liveField, dbField) => {
     const liveValue = row?.[liveField];
-    if (liveValue !== undefined && liveValue !== null && String(liveValue).trim() !== "") {
+    if (
+      liveValue !== undefined &&
+      liveValue !== null &&
+      String(liveValue).trim() !== ""
+    ) {
       return liveValue;
     }
     return dbField ? row?.[dbField] : "";
@@ -471,7 +564,9 @@ const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
       switch (delayKey) {
         case "timeDelayGetQuotation":
           return (
-            isDoneStatus(getEffectiveStatusValue(row, "doerStatus", "dbDoerStatus")) ||
+            isDoneStatus(
+              getEffectiveStatusValue(row, "doerStatus", "dbDoerStatus"),
+            ) ||
             isDoneStatus(
               getEffectiveStatusValue(
                 row,
@@ -490,7 +585,9 @@ const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
           );
         case "timeDelayCommercialNegotiation":
           if (stageId === "getApproval") {
-            return isDoneStatus(getEffectiveStatusValue(row, "getApproval", "dbGetApproval"));
+            return isDoneStatus(
+              getEffectiveStatusValue(row, "getApproval", "dbGetApproval"),
+            );
           }
           return isDoneStatus(
             getEffectiveStatusValue(
@@ -501,7 +598,11 @@ const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
           );
         case "timeDelayPoGeneration":
           return isDoneStatus(
-            getEffectiveStatusValue(row, "poGenerationStatus", "dbPoGenerationStatus"),
+            getEffectiveStatusValue(
+              row,
+              "poGenerationStatus",
+              "dbPoGenerationStatus",
+            ),
           );
         case "timeDelayMaterialReceived":
           return Boolean(
@@ -531,6 +632,70 @@ const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
       }
     },
     [getEffectiveStatusValue, isDoneStatus],
+  );
+
+  const getStageCompletionForSelectedOption = useCallback(
+    (row) => {
+      if (!row) return false;
+
+      switch (selectedOption) {
+        case "Indent Verification":
+          return Boolean(String(row.doerName || "").trim());
+        case "Get Quotation":
+          return (
+            isDoneStatus(
+              getEffectiveStatusValue(row, "doerStatus", "dbDoerStatus"),
+            ) ||
+            isDoneStatus(
+              getEffectiveStatusValue(
+                row,
+                "comparisonStatementStatus",
+                "dbComparisonStatementStatus",
+              ),
+            )
+          );
+        case "Comparison Statement":
+          return isDoneStatus(
+            getEffectiveStatusValue(
+              row,
+              "comparisonStatementStatus",
+              "dbComparisonStatementStatus",
+            ),
+          );
+        case "Technical Approval":
+          return isDoneStatus(
+            getEffectiveStatusValue(
+              row,
+              "technicalApprovalStatus",
+              "dbTechnicalApprovalStatus",
+            ),
+          );
+        case "Commercial Negotiation":
+          return isDoneStatus(
+            getEffectiveStatusValue(
+              row,
+              "finalizeTermsStatus",
+              "dbFinalizeTermsStatus",
+            ),
+          );
+        case "PO Generation":
+          return isDoneStatus(
+            getEffectiveStatusValue(
+              row,
+              "poGenerationStatus",
+              "dbPoGenerationStatus",
+            ),
+          );
+        case "Material Received":
+          return (
+            String(row.materialReceivedDate || "").trim() !== "" &&
+            String(row.storeReceivedDate || "").trim() !== ""
+          );
+        default:
+          return false;
+      }
+    },
+    [selectedOption, getEffectiveStatusValue, isDoneStatus],
   );
 
   const shouldShowGetQuotationRow = useCallback(
@@ -584,7 +749,8 @@ const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
       {
         id: "get3Quotation",
         key: "timeDelayGetQuotation",
-        label: "Get 3 quotation, Finalise Terms and Get Approval whatever is remaining",
+        label:
+          "Get 3 quotation, Finalise Terms and Get Approval whatever is remaining",
       },
       {
         id: "technicalApprovalsFromIndenter",
@@ -647,10 +813,10 @@ const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
             delayedItemCount: 1,
             maxDelayDays: item.delayDays,
             doerNameList:
-              item.doerName && item.doerName !== "-"
-                ? [item.doerName]
-                : [],
-            itemDescriptionList: item.itemDescription ? [item.itemDescription] : [],
+              item.doerName && item.doerName !== "-" ? [item.doerName] : [],
+            itemDescriptionList: item.itemDescription
+              ? [item.itemDescription]
+              : [],
           });
           return;
         }
@@ -681,15 +847,19 @@ const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
               ? item.doerNameList.join(" | ")
               : "-",
           itemDescription:
-            Array.isArray(item.itemDescriptionList) && item.itemDescriptionList.length
+            Array.isArray(item.itemDescriptionList) &&
+            item.itemDescriptionList.length
               ? item.itemDescriptionList.join(" | ")
               : "-",
         }))
         .sort((a, b) => {
-          if (b.maxDelayDays !== a.maxDelayDays) return b.maxDelayDays - a.maxDelayDays;
+          if (b.maxDelayDays !== a.maxDelayDays)
+            return b.maxDelayDays - a.maxDelayDays;
           if (b.delayedItemCount !== a.delayedItemCount)
             return b.delayedItemCount - a.delayedItemCount;
-          return a.uniqueId.localeCompare(b.uniqueId, undefined, { numeric: true });
+          return a.uniqueId.localeCompare(b.uniqueId, undefined, {
+            numeric: true,
+          });
         });
 
       return {
@@ -750,7 +920,8 @@ const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
         };
       })
       .sort((a, b) => {
-        if (b.totalUniqueIds !== a.totalUniqueIds) return b.totalUniqueIds - a.totalUniqueIds;
+        if (b.totalUniqueIds !== a.totalUniqueIds)
+          return b.totalUniqueIds - a.totalUniqueIds;
         if (b.totalItems !== a.totalItems) return b.totalItems - a.totalItems;
         return a.pse.localeCompare(b.pse);
       });
@@ -762,7 +933,6 @@ const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
     if (selectedOption === "Get Quotation") {
       return arr.filter((row) => shouldShowGetQuotationRow(row));
     }
-    
 
     if (selectedOption === "Comparison Statement") {
       arr.sort((a, b) => {
@@ -778,49 +948,61 @@ const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
   // Filter for PMS Master Sheet - Show only items received by both Store and PSE
 
   // Add this after your finalTableData useMemo
-const pmsFilteredData = React.useMemo(() => {
-  if (selectedOption !== "PMS Master Sheet") {
-    return finalTableData;
-  }
-  
-  if (!showOnlyReceivedByBoth && !showOnlyNotReceived) {
-    return finalTableData; // Show all
-  }
-  
-  return (finalTableData || []).filter((row) => {
-    const hasStoreReceived = row.storeReceivedDate && String(row.storeReceivedDate).trim() !== "";
-    const hasPseReceived = row.materialReceivedDate && String(row.materialReceivedDate).trim() !== "";
-    const storeStatusReceived = row.storeStatus === "Received";
-    
-    const isBothReceived = hasStoreReceived && hasPseReceived && storeStatusReceived;
-    
-    if (showOnlyReceivedByBoth) {
-      return isBothReceived;
+  const pmsFilteredData = React.useMemo(() => {
+    if (selectedOption !== "PMS Master Sheet") {
+      return finalTableData;
     }
-    
-    if (showOnlyNotReceived) {
-      return !isBothReceived; // Not both received (missing one or both)
-    }
-    
-    return true;
-  });
-}, [showOnlyReceivedByBoth, showOnlyNotReceived, finalTableData, selectedOption]);
 
-const pmsBothReceivedFilteredData = React.useMemo(() => {
-  if (!showOnlyReceivedByBoth || selectedOption !== "PMS Master Sheet") {
-    return finalTableData;
-  }
-  
-  return (finalTableData || []).filter((row) => {
-    // Check if both Store Received Date and Material Received Date (PSE) are filled
-    const hasStoreReceivedDate = row.storeReceivedDate && String(row.storeReceivedDate).trim() !== "";
-    const hasPseReceivedDate = row.materialReceivedDate && String(row.materialReceivedDate).trim() !== "";
-    const storeStatusReceived = row.storeStatus === "Received";
-    
-    // Return true only if both conditions are met
-    return hasStoreReceivedDate && hasPseReceivedDate && storeStatusReceived;
-  });
-}, [showOnlyReceivedByBoth, finalTableData, selectedOption]);
+    if (!showOnlyReceivedByBoth && !showOnlyNotReceived) {
+      return finalTableData; // Show all
+    }
+
+    return (finalTableData || []).filter((row) => {
+      const hasStoreReceived =
+        row.storeReceivedDate && String(row.storeReceivedDate).trim() !== "";
+      const hasPseReceived =
+        row.materialReceivedDate &&
+        String(row.materialReceivedDate).trim() !== "";
+      const storeStatusReceived = row.storeStatus === "Received";
+
+      const isBothReceived =
+        hasStoreReceived && hasPseReceived && storeStatusReceived;
+
+      if (showOnlyReceivedByBoth) {
+        return isBothReceived;
+      }
+
+      if (showOnlyNotReceived) {
+        return !isBothReceived; // Not both received (missing one or both)
+      }
+
+      return true;
+    });
+  }, [
+    showOnlyReceivedByBoth,
+    showOnlyNotReceived,
+    finalTableData,
+    selectedOption,
+  ]);
+
+  const pmsBothReceivedFilteredData = React.useMemo(() => {
+    if (!showOnlyReceivedByBoth || selectedOption !== "PMS Master Sheet") {
+      return finalTableData;
+    }
+
+    return (finalTableData || []).filter((row) => {
+      // Check if both Store Received Date and Material Received Date (PSE) are filled
+      const hasStoreReceivedDate =
+        row.storeReceivedDate && String(row.storeReceivedDate).trim() !== "";
+      const hasPseReceivedDate =
+        row.materialReceivedDate &&
+        String(row.materialReceivedDate).trim() !== "";
+      const storeStatusReceived = row.storeStatus === "Received";
+
+      // Return true only if both conditions are met
+      return hasStoreReceivedDate && hasPseReceivedDate && storeStatusReceived;
+    });
+  }, [showOnlyReceivedByBoth, finalTableData, selectedOption]);
 
   useEffect(() => {
     if (!canAdminBulkDeletePmsRows || selectedOption !== "PMS Master Sheet") {
@@ -828,7 +1010,9 @@ const pmsBothReceivedFilteredData = React.useMemo(() => {
       return;
     }
 
-    const validIds = new Set((finalTableData || []).map((r) => r?._id).filter(Boolean));
+    const validIds = new Set(
+      (finalTableData || []).map((r) => r?._id).filter(Boolean),
+    );
     setPmsDeleteSelectedRowIds((prev) => prev.filter((id) => validIds.has(id)));
   }, [canAdminBulkDeletePmsRows, selectedOption, finalTableData]);
 
@@ -960,7 +1144,8 @@ const pmsBothReceivedFilteredData = React.useMemo(() => {
 
       try {
         const response = await getVendorMasterList(String(query).trim());
-        const payload = response?.data?.success !== undefined ? response.data : response;
+        const payload =
+          response?.data?.success !== undefined ? response.data : response;
         const data = Array.isArray(payload?.data) ? payload.data : [];
         const uniqueVendorMap = new Map();
         data.forEach((vendor) => {
@@ -986,7 +1171,6 @@ const pmsBothReceivedFilteredData = React.useMemo(() => {
     const queryTerm = String(
       poBulkVendorName || lpBulkVendorName || vendorNameFilter || "",
     ).trim();
-    
 
     vendorSearchTimerRef.current = setTimeout(() => {
       loadVendorMaster(queryTerm);
@@ -1486,251 +1670,258 @@ const pmsBothReceivedFilteredData = React.useMemo(() => {
   };
 
   // ------------------ Fetch + filter data for table ------------------
-  const fetchIndentForms = useCallback(async ({
-    append = false,
-    skipOverride = 0,
-    forceFresh = false,
-    limitOverride,
-  } = {}) => {
-    try {
-      const storedRole = localStorage.getItem("role") || "";
-      const username = localStorage.getItem("username") || "";
-      const requestSkip = append ? skipOverride : 0;
+  const fetchIndentForms = useCallback(
+    async ({
+      append = false,
+      skipOverride = 0,
+      forceFresh = false,
+      limitOverride,
+    } = {}) => {
+      try {
+        const storedRole = localStorage.getItem("role") || "";
+        const username = localStorage.getItem("username") || "";
+        const requestSkip = append ? skipOverride : 0;
 
-      if (append) {
-        setLoadingMoreRows(true);
-      } else {
-        setLoadingInitialRows(true);
-      }
+        if (append) {
+          setLoadingMoreRows(true);
+        } else {
+          setLoadingInitialRows(true);
+        }
 
-      if (selectedOption === "System Logs") {
-        setFilteredData([]);
+        if (selectedOption === "System Logs") {
+          setFilteredData([]);
+          setHasMoreRows(false);
+          setLoadedRowsCount(0);
+          setTotalRowsCount(0);
+          return;
+        }
+
+        // ? Special: Manual-Closed items (Store only)
+        if (selectedOption === "Store" && findBy === "ManualClosed") {
+          const res = await axios.get(
+            `${API_BASE_URL}/indent/store/manual-closed`,
+          );
+          const rows = res.data?.data || [];
+          setFilteredData(Array.isArray(rows) ? rows : []);
+          setHasMoreRows(false);
+          setLoadedRowsCount(Array.isArray(rows) ? rows.length : 0);
+          setTotalRowsCount(Array.isArray(rows) ? rows.length : 0);
+          return;
+        }
+
+        // ? Normal fetch: Indent / Local Purchase
+        let response;
+        if (selectedOption === "Local Purchase") {
+          response = await getAllLocalPurchaseForms({
+            role: storedRole,
+            username,
+            limit: limitOverride || PAGE_SIZE,
+            skip: requestSkip,
+            forceFresh,
+          });
+        } else {
+          response = await getAllIndentForms({
+            role: storedRole,
+            username,
+            limit: limitOverride || PAGE_SIZE,
+            skip: requestSkip,
+            forceFresh,
+          });
+        }
+
+        // Support both helper shapes:
+        // 1) { success:true, data:[...] }
+        // 2) axios response { data:{ success:true, data:[...] } }
+        const payload =
+          response?.data?.success !== undefined ? response.data : response;
+        const ok = payload?.success === true;
+        let rows = ok && Array.isArray(payload?.data) ? payload.data : [];
+        const pagination = payload?.pagination || {};
+        const allSubmittedByNames = Array.from(
+          new Set(
+            (rows || [])
+              .map((item) => String(item?.submittedBy || "").trim())
+              .filter(Boolean),
+          ),
+        ).sort((a, b) => a.localeCompare(b));
+        setSubmittedByOptions(allSubmittedByNames);
+
+        // -------- FILTER BY SITE --------
+        if (findBy === "Site" && selectedSite) {
+          rows = rows.filter((item) => item.site === selectedSite);
+        }
+
+        // -------- FILTER BY NAME --------
+        if (findBy === "Name" && selectedName) {
+          rows = rows.filter((item) => (item.doerName || "") === selectedName);
+        }
+
+        // -------- FILTER BY SECTION --------
+        if (findBy === "Section" && selectedSection) {
+          if (selectedSection === "(No Section)") {
+            // Show rows where section is empty, null, undefined, or whitespace
+            rows = rows.filter(
+              (item) => !item.section || String(item.section).trim() === "",
+            );
+          } else {
+            rows = rows.filter((item) => item.section === selectedSection);
+          }
+        }
+
+        // -------- FILTER BY PO NUMBER --------
+        if (findBy === "PoNumber") {
+          const q = String(poNumberFilter || "")
+            .trim()
+            .toLowerCase();
+          if (q) {
+            rows = rows.filter((item) =>
+              String(item.poNumber || "")
+                .toLowerCase()
+                .includes(q),
+            );
+          }
+        }
+
+        // -------- FILTER BY VENDOR NAME --------
+        if (findBy === "VendorName") {
+          const q = String(vendorNameFilter || "")
+            .trim()
+            .toLowerCase();
+          if (q) {
+            rows = rows.filter((item) =>
+              String(item.vendorName || "")
+                .toLowerCase()
+                .includes(q),
+            );
+          }
+        }
+
+        // -------- PMS MASTER SHEET: FILTER BY UNIQUE ID --------
+        if (selectedOption === "PMS Master Sheet" && findBy === "UniqueId") {
+          const q = String(masterUniqueIdFilter || "")
+            .trim()
+            .toLowerCase();
+          if (q) {
+            rows = rows.filter((item) =>
+              String(item.uniqueId || "")
+                .toLowerCase()
+                .includes(q),
+            );
+          }
+        }
+
+        // -------- PC FOLLOW UP: FILTER BY MULTIPLE SUBMITTED BY --------
+        if (
+          selectedOption === "PC Follow Up" &&
+          findBy === "SubmittedByMulti" &&
+          Array.isArray(selectedSubmittedByNames) &&
+          selectedSubmittedByNames.length > 0
+        ) {
+          const allowedSubmittedBy = new Set(
+            selectedSubmittedByNames
+              .map((name) => String(name || "").trim())
+              .filter(Boolean),
+          );
+          rows = rows.filter((item) =>
+            allowedSubmittedBy.has(String(item?.submittedBy || "").trim()),
+          );
+        }
+
+        // -------- FILTER BY DATE --------
+        if (findBy === "Date" && date) {
+          rows = rows.filter((item) => item.date === date);
+        }
+
+        // -------- FILTER BY DATE RANGE --------
+        if (findBy === "DateRange" && startDate && endDate) {
+          rows = rows.filter(
+            (item) => item.date >= startDate && item.date <= endDate,
+          );
+        }
+
+        // -------- FILTER BY COMPLETION STATUS --------
+        if (findBy === "CompletionStatus") {
+          const isCompletedRow = (item) => {
+            const value = getStageCompletionForSelectedOption(item);
+            return Boolean(value);
+          };
+
+          if (completionStatusFilter === "Completed") {
+            rows = rows.filter(isCompletedRow);
+          } else if (completionStatusFilter === "Not Completed") {
+            rows = rows.filter((item) => !isCompletedRow(item));
+          }
+        }
+
+        // -------- STORE FILTER BY I.N --------
+        if (selectedOption === "Store" && findBy === "IN") {
+          const q = String(storeInFilter || "")
+            .trim()
+            .toLowerCase();
+          if (q) {
+            rows = rows.filter((item) =>
+              String(item.indentNumber || "")
+                .toLowerCase()
+                .includes(q),
+            );
+          }
+        }
+
+        // -------- STORE FILTER BY ITEM DESCRIPTION --------
+        if (selectedOption === "Store" && findBy === "ItemDescription") {
+          const q = String(storeItemDescriptionFilter || "")
+            .trim()
+            .toLowerCase();
+          if (q) {
+            rows = rows.filter((item) =>
+              String(item.itemDescription || "")
+                .toLowerCase()
+                .includes(q),
+            );
+          }
+        }
+
+        const safeRows = Array.isArray(rows) ? rows : [];
+        setFilteredData((prev) => (append ? [...prev, ...safeRows] : safeRows));
+        setHasMoreRows(Boolean(pagination?.hasMore));
+        setLoadedRowsCount(requestSkip + safeRows.length);
+        setTotalRowsCount(
+          Number.isFinite(Number(pagination?.total))
+            ? Number(pagination.total)
+            : requestSkip + safeRows.length,
+        );
+      } catch (error) {
+        console.error("? Error fetching Purchase data:", error);
+        if (!append) {
+          setFilteredData([]);
+          setLoadedRowsCount(0);
+          setTotalRowsCount(0);
+        }
         setHasMoreRows(false);
-        setLoadedRowsCount(0);
-        setTotalRowsCount(0);
-        return;
+      } finally {
+        setLoadingInitialRows(false);
+        setLoadingMoreRows(false);
       }
-
-      // ? Special: Manual-Closed items (Store only)
-      if (selectedOption === "Store" && findBy === "ManualClosed") {
-        const res = await axios.get(
-          `${API_BASE_URL}/indent/store/manual-closed`,
-        );
-        const rows = res.data?.data || [];
-        setFilteredData(Array.isArray(rows) ? rows : []);
-        setHasMoreRows(false);
-        setLoadedRowsCount(Array.isArray(rows) ? rows.length : 0);
-        setTotalRowsCount(Array.isArray(rows) ? rows.length : 0);
-        return;
-      }
-
-      // ? Normal fetch: Indent / Local Purchase
-      let response;
-      if (selectedOption === "Local Purchase") {
-        response = await getAllLocalPurchaseForms({
-          role: storedRole,
-          username,
-          limit: limitOverride || PAGE_SIZE,
-          skip: requestSkip,
-          forceFresh,
-        });
-      } else {
-        response = await getAllIndentForms({
-          role: storedRole,
-          username,
-          limit: limitOverride || PAGE_SIZE,
-          skip: requestSkip,
-          forceFresh,
-        });
-      }
-
-      // Support both helper shapes:
-      // 1) { success:true, data:[...] }
-      // 2) axios response { data:{ success:true, data:[...] } }
-      const payload =
-        response?.data?.success !== undefined ? response.data : response;
-      const ok = payload?.success === true;
-      let rows = ok && Array.isArray(payload?.data) ? payload.data : [];
-      const pagination = payload?.pagination || {};
-      const allSubmittedByNames = Array.from(
-        new Set(
-          (rows || [])
-            .map((item) => String(item?.submittedBy || "").trim())
-            .filter(Boolean),
-        ),
-      ).sort((a, b) => a.localeCompare(b));
-      setSubmittedByOptions(allSubmittedByNames);
-
-      // -------- FILTER BY SITE --------
-      if (findBy === "Site" && selectedSite) {
-        rows = rows.filter((item) => item.site === selectedSite);
-      }
-
-      // -------- FILTER BY NAME --------
-      if (findBy === "Name" && selectedName) {
-        rows = rows.filter((item) => (item.doerName || "") === selectedName);
-      }
-
-// -------- FILTER BY SECTION --------
-if (findBy === "Section" && selectedSection) {
-  if (selectedSection === "(No Section)") {
-    // Show rows where section is empty, null, undefined, or whitespace
-    rows = rows.filter((item) => !item.section || String(item.section).trim() === "");
-  } else {
-    rows = rows.filter((item) => item.section === selectedSection);
-  }
-}
-
-      // -------- FILTER BY PO NUMBER --------
-      if (findBy === "PoNumber") {
-        const q = String(poNumberFilter || "").trim().toLowerCase();
-        if (q) {
-          rows = rows.filter((item) =>
-            String(item.poNumber || "")
-              .toLowerCase()
-              .includes(q),
-          );
-        }
-      }
-
-      // -------- FILTER BY VENDOR NAME --------
-      if (findBy === "VendorName") {
-        const q = String(vendorNameFilter || "").trim().toLowerCase();
-        if (q) {
-          rows = rows.filter((item) =>
-            String(item.vendorName || "")
-              .toLowerCase()
-              .includes(q),
-          );
-        }
-      }
-
-      // -------- PMS MASTER SHEET: FILTER BY UNIQUE ID --------
-      if (selectedOption === "PMS Master Sheet" && findBy === "UniqueId") {
-        const q = String(masterUniqueIdFilter || "").trim().toLowerCase();
-        if (q) {
-          rows = rows.filter((item) =>
-            String(item.uniqueId || "")
-              .toLowerCase()
-              .includes(q),
-          );
-        }
-      }
-
-      // -------- PC FOLLOW UP: FILTER BY MULTIPLE SUBMITTED BY --------
-      if (
-        selectedOption === "PC Follow Up" &&
-        findBy === "SubmittedByMulti" &&
-        Array.isArray(selectedSubmittedByNames) &&
-        selectedSubmittedByNames.length > 0
-      ) {
-        const allowedSubmittedBy = new Set(
-          selectedSubmittedByNames
-            .map((name) => String(name || "").trim())
-            .filter(Boolean),
-        );
-        rows = rows.filter((item) =>
-          allowedSubmittedBy.has(String(item?.submittedBy || "").trim()),
-        );
-      }
-
-      // -------- FILTER BY DATE --------
-      if (findBy === "Date" && date) {
-        rows = rows.filter((item) => item.date === date);
-      }
-
-      // -------- FILTER BY DATE RANGE --------
-      if (findBy === "DateRange" && startDate && endDate) {
-        rows = rows.filter(
-          (item) => item.date >= startDate && item.date <= endDate,
-        );
-      }
-
-      // -------- FILTER BY COMPLETION STATUS --------
-      if (findBy === "CompletionStatus") {
-        if (completionStatusFilter === "Completed") {
-          rows = rows.filter((item) => item.materialReceivedDate && item.storeReceivedDate);
-        } else if (completionStatusFilter === "Not Completed") {
-          rows = rows.filter((item) => !(item.materialReceivedDate && item.storeReceivedDate));
-        }
-      }
-
-      // -------- STORE FILTER BY I.N --------
-      if (selectedOption === "Store" && findBy === "IN") {
-        const q = String(storeInFilter || "").trim().toLowerCase();
-        if (q) {
-          rows = rows.filter((item) =>
-            String(item.indentNumber || "")
-              .toLowerCase()
-              .includes(q),
-          );
-        }
-      }
-
-      // -------- STORE FILTER BY ITEM DESCRIPTION --------
-      if (selectedOption === "Store" && findBy === "ItemDescription") {
-        const q = String(storeItemDescriptionFilter || "")
-          .trim()
-          .toLowerCase();
-        if (q) {
-          rows = rows.filter((item) =>
-            String(item.itemDescription || "")
-              .toLowerCase()
-              .includes(q),
-          );
-        }
-      }
-
-      const safeRows = Array.isArray(rows) ? rows : [];
-      setFilteredData((prev) => (append ? [...prev, ...safeRows] : safeRows));
-      setHasMoreRows(Boolean(pagination?.hasMore));
-      setLoadedRowsCount(requestSkip + safeRows.length);
-      setTotalRowsCount(
-        Number.isFinite(Number(pagination?.total))
-          ? Number(pagination.total)
-          : requestSkip + safeRows.length,
-      );
-    } catch (error) {
-      console.error("? Error fetching Purchase data:", error);
-      if (!append) {
-        setFilteredData([]);
-        setLoadedRowsCount(0);
-        setTotalRowsCount(0);
-      }
-      setHasMoreRows(false);
-    } finally {
-      setLoadingInitialRows(false);
-      setLoadingMoreRows(false);
-    }
-  }, [
-    selectedOption,
-    findBy,
-    selectedSite,
-    selectedName,
-    poNumberFilter,
-    vendorNameFilter,
-    masterUniqueIdFilter,
-    selectedSubmittedByNames,
-    storeInFilter,
-    storeItemDescriptionFilter,
-    date,
-    startDate,
-    selectedSection, 
-    endDate,
-    completionStatusFilter,
-    API_BASE_URL,
-  ]);
-
-  const handleShowMoreRows = useCallback(() => {
-    if (loadingMoreRows || loadingInitialRows || !hasMoreRows) return;
-    fetchIndentForms({ append: true, skipOverride: loadedRowsCount, limitOverride: 10000 });
-  }, [
-    fetchIndentForms,
-    hasMoreRows,
-    loadedRowsCount,
-    loadingInitialRows,
-    loadingMoreRows,
-  ]);
+    },
+    [
+      selectedOption,
+      findBy,
+      selectedSite,
+      selectedName,
+      poNumberFilter,
+      vendorNameFilter,
+      masterUniqueIdFilter,
+      selectedSubmittedByNames,
+      storeInFilter,
+      storeItemDescriptionFilter,
+      date,
+      startDate,
+      selectedSection,
+      endDate,
+      completionStatusFilter,
+      API_BASE_URL,
+    ],
+  );
 
   // ? FindBy dropdown handler
   const handleFindByChange = (value) => {
@@ -1785,7 +1976,7 @@ if (findBy === "Section" && selectedSection) {
 
   // Refetch when filters/option change
   useEffect(() => {
-    fetchIndentForms({ append: false, skipOverride: 0 });
+    fetchIndentForms({ append: false, skipOverride: 0, limitOverride: 100000 });
   }, [fetchIndentForms]);
 
   // Load custom font once
@@ -1845,7 +2036,8 @@ if (findBy === "Section" && selectedSection) {
     const currentRow = (latestDataRef.current || []).find((r) => r?._id === id);
     const currentUniqueId = String(currentRow?.uniqueId || "").trim();
     const currentValue = currentRow?.[field];
-    const targetModel = selectedOption === "Local Purchase" ? "LocalPurchase" : "Purchase";
+    const targetModel =
+      selectedOption === "Local Purchase" ? "LocalPurchase" : "Purchase";
     const targetSection = selectedOption || "Unknown";
 
     queueInputAuditLog({
@@ -2032,7 +2224,11 @@ if (findBy === "Section" && selectedSection) {
 
         // Refresh table so it reflects closed state
         try {
-          await fetchIndentForms({ append: false, skipOverride: 0, forceFresh: true });
+          await fetchIndentForms({
+            append: false,
+            skipOverride: 0,
+            forceFresh: true,
+          });
         } catch (e) {
           console.warn("?? Refresh after manual close failed:", e);
         }
@@ -2166,10 +2362,7 @@ if (findBy === "Section" && selectedSection) {
 
     try {
       const res = await getComparisonPdfByRowId(rowId);
-      const fetchedLink =
-        res?.data?.webViewLink ||
-        res?.webViewLink ||
-        "";
+      const fetchedLink = res?.data?.webViewLink || res?.webViewLink || "";
 
       if (!fetchedLink) {
         alert("PDF not found for this row.");
@@ -2224,7 +2417,9 @@ if (findBy === "Section" && selectedSection) {
       return;
     }
 
-    const rowIds = [...new Set((pmsDeleteSelectedRowIds || []).filter(Boolean))];
+    const rowIds = [
+      ...new Set((pmsDeleteSelectedRowIds || []).filter(Boolean)),
+    ];
     if (!rowIds.length) {
       alert("Please select at least 1 row to delete.");
       return;
@@ -2561,56 +2756,53 @@ if (findBy === "Section" && selectedSection) {
         >
           {selectedOption !== "System Logs" &&
             selectedOption !== "Delay Followup" && (
-            <PurchaseFilterBar
-              selectedOption={selectedOption}
-              pcFollowUp={pcFollowUp}
-              setPcFollowUp={setPcFollowUp}
-              paymentFollowUp={paymentFollowUp}
-              setPaymentFollowUp={setPaymentFollowUp}
-              showExcessBox={showExcessBox}
-              setShowExcessBox={setShowExcessBox}
-              findBy={findBy}
-              handleFindByChange={handleFindByChange}
-              selectedSite={selectedSite}
-              setSelectedSite={setSelectedSite}
-              selectedName={selectedName}
-              setSelectedName={setSelectedName}
-              masterUniqueIdFilter={masterUniqueIdFilter}
-              setMasterUniqueIdFilter={setMasterUniqueIdFilter}
-              selectedSubmittedByNames={selectedSubmittedByNames}
-              setSelectedSubmittedByNames={setSelectedSubmittedByNames}
-              submittedByOptions={submittedByOptions}
-              storeInFilter={storeInFilter}
-              setStoreInFilter={setStoreInFilter}
-              storeItemDescriptionFilter={storeItemDescriptionFilter}
-              setStoreItemDescriptionFilter={setStoreItemDescriptionFilter}
-              poNumberFilter={poNumberFilter}
-              setPoNumberFilter={setPoNumberFilter}
-              vendorNameFilter={vendorNameFilter}
-              setVendorNameFilter={setVendorNameFilter}
-              vendorOptions={vendorOptions}
-              sectionOptions={sectionOptions}
-              date={date}
-              setDate={setDate}
-              startDate={startDate}
-              setStartDate={setStartDate}
-              endDate={endDate}
-              setEndDate={setEndDate}
-              selectedSection={selectedSection}
-              setSelectedSection={setSelectedSection}
-              completionStatusFilter={completionStatusFilter}
-              setCompletionStatusFilter={setCompletionStatusFilter}
-                
-            />
-          )}
-
+              <PurchaseFilterBar
+                selectedOption={selectedOption}
+                pcFollowUp={pcFollowUp}
+                setPcFollowUp={setPcFollowUp}
+                paymentFollowUp={paymentFollowUp}
+                setPaymentFollowUp={setPaymentFollowUp}
+                showExcessBox={showExcessBox}
+                setShowExcessBox={setShowExcessBox}
+                findBy={findBy}
+                handleFindByChange={handleFindByChange}
+                selectedSite={selectedSite}
+                setSelectedSite={setSelectedSite}
+                selectedName={selectedName}
+                setSelectedName={setSelectedName}
+                masterUniqueIdFilter={masterUniqueIdFilter}
+                setMasterUniqueIdFilter={setMasterUniqueIdFilter}
+                selectedSubmittedByNames={selectedSubmittedByNames}
+                setSelectedSubmittedByNames={setSelectedSubmittedByNames}
+                submittedByOptions={submittedByOptions}
+                storeInFilter={storeInFilter}
+                setStoreInFilter={setStoreInFilter}
+                storeItemDescriptionFilter={storeItemDescriptionFilter}
+                setStoreItemDescriptionFilter={setStoreItemDescriptionFilter}
+                poNumberFilter={poNumberFilter}
+                setPoNumberFilter={setPoNumberFilter}
+                vendorNameFilter={vendorNameFilter}
+                setVendorNameFilter={setVendorNameFilter}
+                vendorOptions={vendorOptions}
+                sectionOptions={sectionOptions}
+                date={date}
+                setDate={setDate}
+                startDate={startDate}
+                setStartDate={setStartDate}
+                endDate={endDate}
+                setEndDate={setEndDate}
+                selectedSection={selectedSection}
+                setSelectedSection={setSelectedSection}
+                completionStatusFilter={completionStatusFilter}
+                setCompletionStatusFilter={setCompletionStatusFilter}
+              />
+            )}
 
           <div className="mb-8 p-4 bg-red-600 rounded-xl shadow-md text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-white">
               Purchase
             </h1>
           </div>
-          
 
           {selectedOption === "Summary Report" && (
             <SummaryReportSection
@@ -2622,23 +2814,19 @@ if (findBy === "Section" && selectedSection) {
               username={username}
             />
           )}
-          
+
           {selectedOption === "System Logs" && (
             <SystemLogsSection username={username} />
           )}
 
           {selectedOption === "Delay Followup" && (
-            <DelayFollowupSection
-              role={role}
-              username={username}
-            />
+            <DelayFollowupSection role={role} username={username} />
           )}
 
           {selectedOption !== "Summary Report" &&
             selectedOption !== "System Logs" &&
             selectedOption !== "Delay Followup" && (
               <div className="w-full max-h-[65vh] sm:max-h-[70vh] overflow-auto rounded-xl border border-gray-200">
-                
                 {selectedOption === "Store" && (
                   <StoreManualCloseSection
                     manualCloseUniqueId={manualCloseUniqueId}
@@ -2677,33 +2865,33 @@ if (findBy === "Section" && selectedSection) {
 
                 {selectedOption === "PO Generation" &&
                   canAccessPoBulkUpload && (
-                  <PoBulkSection
-                    poSelectedRowIds={poSelectedRowIds}
-                    poBulkPoNumber={poBulkPoNumber}
-                    setPoBulkPoNumber={setPoBulkPoNumber}
-                    poBulkPoDate={poBulkPoDate}
-                    setPoBulkPoDate={setPoBulkPoDate}
-                    poBulkVendorName={poBulkVendorName}
-                    setPoBulkVendorName={setPoBulkVendorName}
-                    poBulkLeadDays={poBulkLeadDays}
-                    setPoBulkLeadDays={setPoBulkLeadDays}
-                    poBulkPaymentCondition={poBulkPaymentCondition}
-                    setPoBulkPaymentCondition={setPoBulkPaymentCondition}
-                    poBulkAmount={poBulkAmount}
-                    setPoBulkAmount={setPoBulkAmount}
-                    poBulkPapwDays={poBulkPapwDays}
-                    setPoBulkPapwDays={setPoBulkPapwDays}
-                    poBulkFileKey={poBulkFileKey}
-                    setPoBulkFile={setPoBulkFile}
-                    handlePoBulkUpload={handlePoBulkUpload}
-                    poBulkUploading={poBulkUploading}
-                    clearPoSelection={clearPoSelection}
-                    setPoBulkError={setPoBulkError}
-                    setPoBulkSuccess={setPoBulkSuccess}
-                    poBulkError={poBulkError}
-                    poBulkSuccess={poBulkSuccess}
-                  />
-                )}
+                    <PoBulkSection
+                      poSelectedRowIds={poSelectedRowIds}
+                      poBulkPoNumber={poBulkPoNumber}
+                      setPoBulkPoNumber={setPoBulkPoNumber}
+                      poBulkPoDate={poBulkPoDate}
+                      setPoBulkPoDate={setPoBulkPoDate}
+                      poBulkVendorName={poBulkVendorName}
+                      setPoBulkVendorName={setPoBulkVendorName}
+                      poBulkLeadDays={poBulkLeadDays}
+                      setPoBulkLeadDays={setPoBulkLeadDays}
+                      poBulkPaymentCondition={poBulkPaymentCondition}
+                      setPoBulkPaymentCondition={setPoBulkPaymentCondition}
+                      poBulkAmount={poBulkAmount}
+                      setPoBulkAmount={setPoBulkAmount}
+                      poBulkPapwDays={poBulkPapwDays}
+                      setPoBulkPapwDays={setPoBulkPapwDays}
+                      poBulkFileKey={poBulkFileKey}
+                      setPoBulkFile={setPoBulkFile}
+                      handlePoBulkUpload={handlePoBulkUpload}
+                      poBulkUploading={poBulkUploading}
+                      clearPoSelection={clearPoSelection}
+                      setPoBulkError={setPoBulkError}
+                      setPoBulkSuccess={setPoBulkSuccess}
+                      poBulkError={poBulkError}
+                      poBulkSuccess={poBulkSuccess}
+                    />
+                  )}
 
                 {/* ------------------ Local Purchase Bulk Update (Invoice Date / Vendor / Remarks) ------------------ */}
                 {selectedOption === "Local Purchase" && (
@@ -2732,99 +2920,105 @@ if (findBy === "Section" && selectedSection) {
                   />
                 )}
                 {selectedOption === "PMS Master Sheet" && (
-  <>
-    {/* Delete Section for Admin */}
-    {canAdminBulkDeletePmsRows && (
-      <div className="mb-4 border rounded-xl p-3 bg-red-50 shadow-sm">
-        {/* ... existing delete section content ... */}
-      </div>
-    )}
+                  <>
+                    {/* Delete Section for Admin */}
+                    {canAdminBulkDeletePmsRows && (
+                      <div className="mb-4 border rounded-xl p-3 bg-red-50 shadow-sm">
+                        {/* ... existing delete section content ... */}
+                      </div>
+                    )}
 
-    {/* ✅ ADD THE FILTER BUTTON HERE */}
-      {/* ✅ ADD THE FILTER BUTTONS HERE */}
-    <div className="mb-4 flex gap-3 justify-end">
-      <button
-        onClick={() => {
-          setShowOnlyReceivedByBoth(true);
-          setShowOnlyNotReceived(false);
-        }}
-        className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
-          showOnlyReceivedByBoth && !showOnlyNotReceived
-            ? "bg-green-600 text-white shadow-md hover:bg-green-700"
-            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-        }`}
-      >
-        <FaCheckCircle />
-        Both Received
-      </button>
-      
-      <button
-        onClick={() => {
-          setShowOnlyReceivedByBoth(false);
-          setShowOnlyNotReceived(true);
-        }}
-        className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
-          showOnlyNotReceived && !showOnlyReceivedByBoth
-            ? "bg-orange-600 text-white shadow-md hover:bg-orange-700"
-            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-        }`}
-      >
-        <FaTruck />
-        Not Yet Received
-      </button>
-      
-      <button
-        onClick={() => {
-          setShowOnlyReceivedByBoth(false);
-          setShowOnlyNotReceived(false);
-        }}
-        className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
-          !showOnlyReceivedByBoth && !showOnlyNotReceived
-            ? "bg-blue-600 text-white shadow-md hover:bg-blue-700"
-            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-        }`}
-      >
-        Show All
-      </button>
-    </div>
+                    {/* ✅ ADD THE FILTER BUTTON HERE */}
+                    {/* ✅ ADD THE FILTER BUTTONS HERE */}
+                    <div className="mb-4 flex gap-3 justify-end">
+                      <button
+                        onClick={() => {
+                          setShowOnlyReceivedByBoth(true);
+                          setShowOnlyNotReceived(false);
+                        }}
+                        className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
+                          showOnlyReceivedByBoth && !showOnlyNotReceived
+                            ? "bg-green-600 text-white shadow-md hover:bg-green-700"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        }`}
+                      >
+                        <FaCheckCircle />
+                        Both Received
+                      </button>
 
-    {/* Show filter status message */}
-    {showOnlyReceivedByBoth && (
-      <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
-        <FaCheckCircle className="inline mr-1" />
-        Showing only items where BOTH Store and PSE have confirmed receipt
-      </div>
-    )}
-    
-    {showOnlyNotReceived && (
-      <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-700">
-        <FaTruck className="inline mr-1" />
-        Showing only items NOT YET received by both (missing Store or PSE receipt)
-      </div>
-    )}
+                      <button
+                        onClick={() => {
+                          setShowOnlyReceivedByBoth(false);
+                          setShowOnlyNotReceived(true);
+                        }}
+                        className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
+                          showOnlyNotReceived && !showOnlyReceivedByBoth
+                            ? "bg-orange-600 text-white shadow-md hover:bg-orange-700"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        }`}
+                      >
+                        <FaTruck />
+                        Not Yet Received
+                      </button>
 
-    {/* Optional: Show filter status */}
-    {showOnlyReceivedByBoth && (
-      <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
-        <FaCheckCircle className="inline mr-1" />
-        Filter active: Showing only items where both Store and PSE have confirmed receipt
-      </div>
-    )}
-  </>
-)}
+                      <button
+                        onClick={() => {
+                          setShowOnlyReceivedByBoth(false);
+                          setShowOnlyNotReceived(false);
+                        }}
+                        className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
+                          !showOnlyReceivedByBoth && !showOnlyNotReceived
+                            ? "bg-blue-600 text-white shadow-md hover:bg-blue-700"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        }`}
+                      >
+                        Show All
+                      </button>
+                    </div>
+
+                    {/* Show filter status message */}
+                    {showOnlyReceivedByBoth && (
+                      <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                        <FaCheckCircle className="inline mr-1" />
+                        Showing only items where BOTH Store and PSE have
+                        confirmed receipt
+                      </div>
+                    )}
+
+                    {showOnlyNotReceived && (
+                      <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-700">
+                        <FaTruck className="inline mr-1" />
+                        Showing only items NOT YET received by both (missing
+                        Store or PSE receipt)
+                      </div>
+                    )}
+
+                    {/* Optional: Show filter status */}
+                    {showOnlyReceivedByBoth && (
+                      <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                        <FaCheckCircle className="inline mr-1" />
+                        Filter active: Showing only items where both Store and
+                        PSE have confirmed receipt
+                      </div>
+                    )}
+                  </>
+                )}
 
                 {selectedOption === "PMS Master Sheet" &&
                   canAdminBulkDeletePmsRows && (
                     <div className="mb-4 border rounded-xl p-3 bg-red-50 shadow-sm">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div className="text-sm font-semibold text-red-800">
-                          Delete Rows - Selected: {pmsDeleteSelectedRowIds.length}
+                          Delete Rows - Selected:{" "}
+                          {pmsDeleteSelectedRowIds.length}
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
                             className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm"
-                            onClick={() => selectAllPmsDeleteRows(finalTableData)}
+                            onClick={() =>
+                              selectAllPmsDeleteRows(finalTableData)
+                            }
                             disabled={deletingPmsRows || !finalTableData.length}
                           >
                             Select All
@@ -2833,7 +3027,9 @@ if (findBy === "Section" && selectedSection) {
                             type="button"
                             className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm"
                             onClick={clearPmsDeleteSelection}
-                            disabled={deletingPmsRows || !pmsDeleteSelectedRowIds.length}
+                            disabled={
+                              deletingPmsRows || !pmsDeleteSelectedRowIds.length
+                            }
                           >
                             Clear
                           </button>
@@ -2841,16 +3037,18 @@ if (findBy === "Section" && selectedSection) {
                             type="button"
                             className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-sm disabled:opacity-60"
                             onClick={handleDeleteSelectedPmsRows}
-                            disabled={deletingPmsRows || !pmsDeleteSelectedRowIds.length}
+                            disabled={
+                              deletingPmsRows || !pmsDeleteSelectedRowIds.length
+                            }
                           >
-                            {deletingPmsRows ? "Deleting..." : "Delete Selected"}
+                            {deletingPmsRows
+                              ? "Deleting..."
+                              : "Delete Selected"}
                           </button>
                         </div>
                       </div>
                     </div>
                   )}
-                  
-                  
 
                 <table className="min-w-max border border-gray-200 rounded-xl whitespace-nowrap text-xs">
                   <thead className="bg-gray-200 rounded-t-xl sticky top-0 z-20">
@@ -3147,7 +3345,6 @@ if (findBy === "Section" && selectedSection) {
                               </th>
                             </>
                           )}
-                          
 
                           {selectedOption === "Get Quotation" && (
                             <>
@@ -3387,8 +3584,8 @@ if (findBy === "Section" && selectedSection) {
         row.comparisonStatementStatus === "Reopen"
           ? "bg-yellow-200 hover:bg-yellow-300"
           : index % 2 === 0
-          ? "bg-gray-50 hover:bg-red-50"
-          : "bg-white hover:bg-red-50"
+            ? "bg-gray-50 hover:bg-red-50"
+            : "bg-white hover:bg-red-50"
       }
     `}
                           >
@@ -3414,8 +3611,7 @@ if (findBy === "Section" && selectedSection) {
                                 const isDone =
                                   row.comparisonStatementStatus === "Done";
                                 const isReadOnly =
-                                  !canUploadComparisonPdf ||
-                                  (isPA && isDone);
+                                  !canUploadComparisonPdf || (isPA && isDone);
 
                                 // ? SINGLE SOURCE OF TRUTH (from Mongo)
                                 const savedDriveLink =
@@ -3465,7 +3661,9 @@ if (findBy === "Section" && selectedSection) {
                                         onClick={() =>
                                           !isReadOnly &&
                                           document
-                                            .getElementById(`pdfInput_${row._id}`)
+                                            .getElementById(
+                                              `pdfInput_${row._id}`,
+                                            )
                                             ?.click()
                                         }
                                         className={`flex items-center gap-2 px-3 py-0.5 rounded transition ${
@@ -3603,11 +3801,13 @@ if (findBy === "Section" && selectedSection) {
                               row.storeManualClosed
                                 ? "bg-blue-100 border-l-4 border-blue-600 hover:bg-blue-200 transition"
                                 : selectedOption === "Material Received" &&
-                                  isMaterialMismatch(row)
-                                ? "bg-red-200 hover:bg-red-300 transition"
-                                : `${
-                                    index % 2 === 0 ? "bg-gray-50" : "bg-white"
-                                  } hover:bg-red-50 transition`
+                                    isMaterialMismatch(row)
+                                  ? "bg-red-200 hover:bg-red-300 transition"
+                                  : `${
+                                      index % 2 === 0
+                                        ? "bg-gray-50"
+                                        : "bg-white"
+                                    } hover:bg-red-50 transition`
                             }
                           >
                             {(() => {
@@ -4114,7 +4314,6 @@ if (findBy === "Section" && selectedSection) {
                                 row.indentNumber
                               )}
                             </td>
-                            
 
                             {/* ITEM NUMBER */}
                             <td className="px-4 py-2 border-b">
@@ -5497,7 +5696,8 @@ if (findBy === "Section" && selectedSection) {
                                   committedPoStatus ??
                                   ""
                                 ).toString();
-                                const isPoAlreadyDone = committedPoStatus === "Done";
+                                const isPoAlreadyDone =
+                                  committedPoStatus === "Done";
 
                                 // PO detail fields are filled by PSE (ADMIN override).
                                 const canEditPoDetails =
@@ -5598,7 +5798,8 @@ if (findBy === "Section" && selectedSection) {
                                     <td className="px-4 py-2 border-b">
                                       {(() => {
                                         const hasUploadRole =
-                                          role === "ADMIN" || role === "PA" ||
+                                          role === "ADMIN" ||
+                                          role === "PA" ||
                                           isDebasishPoUploadOnlyUser;
                                         const alreadyUploaded = Boolean(
                                           row.poPdfWebViewLink,
@@ -5906,10 +6107,10 @@ if (findBy === "Section" && selectedSection) {
                                     className="border p-1 rounded"
                                     value={
                                       selectedOption === "PC Follow Up"
-                                        ? row[`actualPCFollowUp${pcIndex}`] ??
-                                          ""
-                                        : row[`actualPayment${paymentKey}`] ??
-                                          ""
+                                        ? (row[`actualPCFollowUp${pcIndex}`] ??
+                                          "")
+                                        : (row[`actualPayment${paymentKey}`] ??
+                                          "")
                                     }
                                     disabled={isDebasishPoUploadOnlyUser}
                                     onChange={(e) =>
@@ -5930,10 +6131,10 @@ if (findBy === "Section" && selectedSection) {
                                     className="border p-1 rounded"
                                     value={
                                       selectedOption === "PC Follow Up"
-                                        ? row[`statusPCFollowUp${pcIndex}`] ??
-                                          ""
-                                        : row[`statusPayment${paymentKey}`] ??
-                                          ""
+                                        ? (row[`statusPCFollowUp${pcIndex}`] ??
+                                          "")
+                                        : (row[`statusPayment${paymentKey}`] ??
+                                          "")
                                     }
                                     disabled={isDebasishPoUploadOnlyUser}
                                     onChange={(e) =>
@@ -5968,10 +6169,10 @@ if (findBy === "Section" && selectedSection) {
                                     className="border p-1 rounded w-full min-w-[180px]"
                                     value={
                                       selectedOption === "PC Follow Up"
-                                        ? row[`remarksPCFollowUp${pcIndex}`] ??
-                                          ""
-                                        : row[`remarksPayment${paymentKey}`] ??
-                                          ""
+                                        ? (row[`remarksPCFollowUp${pcIndex}`] ??
+                                          "")
+                                        : (row[`remarksPayment${paymentKey}`] ??
+                                          "")
                                     }
                                     disabled={isDebasishPoUploadOnlyUser}
                                     onChange={(e) =>
@@ -6007,14 +6208,14 @@ if (findBy === "Section" && selectedSection) {
                                         .toLocaleDateString("en-GB")
                                         .replace(/\//g, "-")
                                     : row.storeReceivedDate ||
-                                      row.materialReceivedDate
-                                    ? new Date(
-                                        row.storeReceivedDate ||
-                                          row.materialReceivedDate,
-                                      )
-                                        .toLocaleDateString("en-GB")
-                                        .replace(/\//g, "-")
-                                    : ""}
+                                        row.materialReceivedDate
+                                      ? new Date(
+                                          row.storeReceivedDate ||
+                                            row.materialReceivedDate,
+                                        )
+                                          .toLocaleDateString("en-GB")
+                                          .replace(/\//g, "-")
+                                      : ""}
                                 </td>
 
                                 {/* Time Delay */}
@@ -6068,21 +6269,16 @@ if (findBy === "Section" && selectedSection) {
                   </tbody>
                 </table>
 
-                {(hasMoreRows || loadingInitialRows || loadingMoreRows) && (
+                {(loadingInitialRows ||
+                  loadingMoreRows ||
+                  totalRowsCount > 0) && (
                   <div className="flex flex-col items-center gap-3 border-x border-b border-gray-200 bg-white px-4 py-4">
                     <div className="text-xs text-gray-600">
-                      Loaded {loadedRowsCount} of {totalRowsCount || loadedRowsCount} records
+                      Loaded {loadedRowsCount} of{" "}
+                      {totalRowsCount || loadedRowsCount} records
+                      {(loadingMoreRows || loadingInitialRows) &&
+                        " — loading all records..."}
                     </div>
-                    {hasMoreRows && (
-                      <button
-                        type="button"
-                        onClick={handleShowMoreRows}
-                        disabled={loadingInitialRows || loadingMoreRows}
-                        className="rounded-full bg-red-600 px-5 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        {loadingMoreRows ? "Loading..." : "Load All Records"}
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
@@ -6092,7 +6288,9 @@ if (findBy === "Section" && selectedSection) {
         {selectedOption !== "Summary Report" &&
           selectedOption !== "System Logs" &&
           selectedOption !== "Delay Followup" &&
-          !(isDebasishPoUploadOnlyUser && selectedOption === "PO Generation") && (
+          !(
+            isDebasishPoUploadOnlyUser && selectedOption === "PO Generation"
+          ) && (
             <div className="flex justify-end">
               <button
                 onClick={handleSubmitUpdates}
