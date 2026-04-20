@@ -99,14 +99,6 @@ const getNavLinksByRole = (role, username) => {
 
     };
   }
-  // else if (role === "PC" && normalizedUsername === "Debasish Samanta PO") {
-  //   menu = {
-  //     "Executive FMS Section": [
-  //       { name: "PC Follow Up", icon: <FaPhoneAlt /> },
-  //       { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
-  //     ],
-  //   };
-  // }
   else if (role === "PA" && isDebasishPoUploadOnlyUsername) {
     menu = {
       "Executive FMS Section": [
@@ -123,7 +115,7 @@ const getNavLinksByRole = (role, username) => {
         { name: "Commercial Negotiation", icon: <FaHandshake /> },
         { name: "Local Purchase", icon: <FaStore /> },
         { name: "PO Generation", icon: <FaFileSignature /> },
-      { name: "Summary Report", icon: <FaClipboardList /> },
+        { name: "Summary Report", icon: <FaClipboardList /> },
         { name: "PC Follow Up", icon: <FaPhoneAlt /> },
         { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
         { name: "Store", icon: <FaTruck /> },
@@ -135,16 +127,12 @@ const getNavLinksByRole = (role, username) => {
         { name: "Indent Verification", icon: <FaClipboardCheck /> },
         { name: "Get Quotation", icon: <FaFileAlt /> },
         { name: "Comparison Statement", icon: <FaBalanceScale /> },
-        { name: "Technical Approval", icon: <FaCheckCircle /> },
-        { name: "Commercial Negotiation", icon: <FaHandshake /> },
-        { name: "Local Purchase", icon: <FaStore /> },
-        { name: "PO Generation", icon: <FaFileSignature /> },
+        { name: "Summary Report", icon: <FaClipboardList /> },
       ],
     };
   } else if (role === "PAC") {
     menu = {
       "Executive FMS Section": [
-
         { name: "Technical Approval", icon: <FaCheckCircle /> },
         { name: "Commercial Negotiation", icon: <FaHandshake /> },
         { name: "Local Purchase", icon: <FaStore /> },
