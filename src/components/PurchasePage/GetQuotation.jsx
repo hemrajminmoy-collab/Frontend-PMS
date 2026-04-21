@@ -110,15 +110,17 @@ const getNavLinksByRole = (role, username) => {
       "Executive FMS Section": [
         { name: "Indent Verification", icon: <FaClipboardCheck /> },
         { name: "Get Quotation", icon: <FaFileAlt /> },
+        { name: "PO Generation", icon: <FaFileSignature /> },
         { name: "Comparison Statement", icon: <FaBalanceScale /> },
         { name: "Technical Approval", icon: <FaCheckCircle /> },
         { name: "Commercial Negotiation", icon: <FaHandshake /> },
         { name: "Local Purchase", icon: <FaStore /> },
-        { name: "PO Generation", icon: <FaFileSignature /> },
-        { name: "Summary Report", icon: <FaClipboardList /> },
+        { name: "Store", icon: <FaTruck /> },
         { name: "PC Follow Up", icon: <FaPhoneAlt /> },
         { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
-        { name: "Store", icon: <FaTruck /> },
+        { name: "Material Received", icon: <FaTruck /> },
+        { name: "Summary Report", icon: <FaClipboardList /> },
+
       ],
     };
   } else if (role === "PA") {
