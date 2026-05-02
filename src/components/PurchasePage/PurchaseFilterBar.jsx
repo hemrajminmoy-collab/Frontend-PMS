@@ -160,6 +160,9 @@ export default function PurchaseFilterBar({
           {selectedOption === "PC Follow Up" && (
             <option value="SubmittedByMulti">Submitted By (Multiple)</option>
           )}
+          {selectedOption === "PC Follow Up" && (
+            <option value="DelayedItems">Delayed Items</option>
+          )}
           {selectedOption === "Store" && (
             <>
               <option value="IN">I.N</option>

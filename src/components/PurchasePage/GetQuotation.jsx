@@ -162,6 +162,8 @@ const getNavLinksByRole = (role, username) => {
       { name: "PC Follow Up", icon: <FaPhoneAlt /> },
       { name: "Payment Follow Up", icon: <FaRegMoneyBillAlt /> },
       { name: "Summary Report", icon: <FaClipboardList /> },
+      { name: "Material Received", icon: <FaTruck /> },
+
       ],
     };
   } else if (role === "ADMIN") {
@@ -417,6 +419,7 @@ export default function PurchasePage() {
 
   const [showOnlyReceivedByBoth, setShowOnlyReceivedByBoth] = useState(false);
   const [showOnlyNotReceived, setShowOnlyNotReceived] = useState(false);
+  const [showOnlyDelayedItems, setShowOnlyDelayedItems] = useState(false);
   const [findBy, setFindBy] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
   const [selectedName, setSelectedName] = useState("");
@@ -935,6 +938,34 @@ export default function PurchasePage() {
 
     return arr;
   }, [renderedTableData, selectedOption, shouldShowGetQuotationRow]);
+
+  const hasPendingDelayForPmsRow = useCallback(
+    (row) =>
+      delayFields.some((field) => {
+        const delayDays = parseDelayDays(row?.[field.key]);
+        if (delayDays <= 0) return false;
+        return !isDelayStageCompleted(row, field.key);
+      }),
+    [delayFields, parseDelayDays, isDelayStageCompleted],
+  );
+
+  const hasPendingDelayForPcFollowUpRow = useCallback(
+    (row) => {
+      const stageIndex =
+        selectedOption === "PC Follow Up"
+          ? String(pcFollowUp || "PC1").replace("PC", "")
+          : "";
+      if (!stageIndex) return false;
+
+      const delayKey = `timeDelayPCFollowUp${stageIndex}`;
+      const delayDays = parseDelayDays(row?.[delayKey]);
+      if (delayDays <= 0) return false;
+
+      return !isDelayStageCompleted(row, delayKey);
+    },
+    [isDelayStageCompleted, parseDelayDays, pcFollowUp, selectedOption],
+  );
+
   // Filter for PMS Master Sheet - Show only items received by both Store and PSE
 
   // Add this after your finalTableData useMemo
@@ -943,7 +974,11 @@ export default function PurchasePage() {
       return finalTableData;
     }
 
-    if (!showOnlyReceivedByBoth && !showOnlyNotReceived) {
+    if (
+      !showOnlyReceivedByBoth &&
+      !showOnlyNotReceived &&
+      !showOnlyDelayedItems
+    ) {
       return finalTableData; // Show all
     }
 
@@ -966,12 +1001,18 @@ export default function PurchasePage() {
         return !isBothReceived; // Not both received (missing one or both)
       }
 
+      if (showOnlyDelayedItems) {
+        return hasPendingDelayForPmsRow(row);
+      }
+
       return true;
     });
   }, [
     showOnlyReceivedByBoth,
     showOnlyNotReceived,
+    showOnlyDelayedItems,
     finalTableData,
+    hasPendingDelayForPmsRow,
     selectedOption,
   ]);
 
@@ -1001,10 +1042,10 @@ export default function PurchasePage() {
     }
 
     const validIds = new Set(
-      (finalTableData || []).map((r) => r?._id).filter(Boolean),
+      (pmsFilteredData || []).map((r) => r?._id).filter(Boolean),
     );
     setPmsDeleteSelectedRowIds((prev) => prev.filter((id) => validIds.has(id)));
-  }, [canAdminBulkDeletePmsRows, selectedOption, finalTableData]);
+  }, [canAdminBulkDeletePmsRows, selectedOption, pmsFilteredData]);
 
   // keep ref in-sync whenever state changes
   useEffect(() => {
@@ -1817,6 +1858,10 @@ export default function PurchasePage() {
           );
         }
 
+        if (selectedOption === "PC Follow Up" && findBy === "DelayedItems") {
+          rows = rows.filter((item) => hasPendingDelayForPcFollowUpRow(item));
+        }
+
         // -------- FILTER BY DATE --------
         if (findBy === "Date" && date) {
           rows = rows.filter((item) => item.date === date);
@@ -1902,6 +1947,7 @@ export default function PurchasePage() {
       vendorNameFilter,
       masterUniqueIdFilter,
       selectedSubmittedByNames,
+      hasPendingDelayForPcFollowUpRow,
       storeInFilter,
       storeItemDescriptionFilter,
       date,
@@ -2925,9 +2971,12 @@ export default function PurchasePage() {
                         onClick={() => {
                           setShowOnlyReceivedByBoth(true);
                           setShowOnlyNotReceived(false);
+                          setShowOnlyDelayedItems(false);
                         }}
                         className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
-                          showOnlyReceivedByBoth && !showOnlyNotReceived
+                          showOnlyReceivedByBoth &&
+                          !showOnlyNotReceived &&
+                          !showOnlyDelayedItems
                             ? "bg-green-600 text-white shadow-md hover:bg-green-700"
                             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                         }`}
@@ -2940,9 +2989,12 @@ export default function PurchasePage() {
                         onClick={() => {
                           setShowOnlyReceivedByBoth(false);
                           setShowOnlyNotReceived(true);
+                          setShowOnlyDelayedItems(false);
                         }}
                         className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
-                          showOnlyNotReceived && !showOnlyReceivedByBoth
+                          showOnlyNotReceived &&
+                          !showOnlyReceivedByBoth &&
+                          !showOnlyDelayedItems
                             ? "bg-orange-600 text-white shadow-md hover:bg-orange-700"
                             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                         }`}
@@ -2955,9 +3007,30 @@ export default function PurchasePage() {
                         onClick={() => {
                           setShowOnlyReceivedByBoth(false);
                           setShowOnlyNotReceived(false);
+                          setShowOnlyDelayedItems(true);
                         }}
                         className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
-                          !showOnlyReceivedByBoth && !showOnlyNotReceived
+                          showOnlyDelayedItems &&
+                          !showOnlyReceivedByBoth &&
+                          !showOnlyNotReceived
+                            ? "bg-red-600 text-white shadow-md hover:bg-red-700"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        }`}
+                      >
+                        <FaClipboardList />
+                        Delay Items
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowOnlyReceivedByBoth(false);
+                          setShowOnlyNotReceived(false);
+                          setShowOnlyDelayedItems(false);
+                        }}
+                        className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 ${
+                          !showOnlyReceivedByBoth &&
+                          !showOnlyNotReceived &&
+                          !showOnlyDelayedItems
                             ? "bg-blue-600 text-white shadow-md hover:bg-blue-700"
                             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                         }`}
@@ -2980,6 +3053,13 @@ export default function PurchasePage() {
                         <FaTruck className="inline mr-1" />
                         Showing only items NOT YET received by both (missing
                         Store or PSE receipt)
+                      </div>
+                    )}
+
+                    {showOnlyDelayedItems && (
+                      <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                        <FaClipboardList className="inline mr-1" />
+                        Showing only delayed items with pending stages
                       </div>
                     )}
 
@@ -3007,9 +3087,11 @@ export default function PurchasePage() {
                             type="button"
                             className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm"
                             onClick={() =>
-                              selectAllPmsDeleteRows(finalTableData)
+                              selectAllPmsDeleteRows(pmsFilteredData)
                             }
-                            disabled={deletingPmsRows || !finalTableData.length}
+                            disabled={
+                              deletingPmsRows || !pmsFilteredData.length
+                            }
                           >
                             Select All
                           </button>
