@@ -2264,6 +2264,7 @@ export default function PurchasePage() {
             append: false,
             skipOverride: 0,
             forceFresh: true,
+            limitOverride: 100000,
           });
         } catch (e) {
           console.warn("?? Refresh after manual close failed:", e);
@@ -2364,7 +2365,7 @@ export default function PurchasePage() {
       setUploadedFiles((prev) => ({ ...prev, [rowId]: file.name }));
 
       // ? Refresh to get updated row fields from DB
-      await fetchIndentForms({ forceFresh: true });
+      await fetchIndentForms({ forceFresh: true, limitOverride: 100000 });
     } catch (err) {
       // ? Show actual backend error text (very important)
       const backendMsg =
